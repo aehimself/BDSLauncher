@@ -41,6 +41,9 @@ Type
     Fileassociations1: TMenuItem;
     akeover1: TMenuItem;
     Giveback1: TMenuItem;
+    N2: TMenuItem;
+    Moveup1: TMenuItem;
+    Movedown1: TMenuItem;
     Procedure FormCreate(Sender: TObject);
     Procedure Deleterule1Click(Sender: TObject);
     Procedure Newrule1Click(Sender: TObject);
@@ -58,6 +61,7 @@ Type
     Procedure Savesettings1Click(Sender: TObject);
     Procedure akeover1Click(Sender: TObject);
     Procedure Giveback1Click(Sender: TObject);
+    Procedure MoveRuleClick(Sender: TObject);
   strict private
     _dontsave: Boolean;
     _loading: Boolean;
@@ -117,9 +121,6 @@ Procedure TBDSLauncherMainForm.FormCreate(Sender: TObject);
 Var
   ver: TAEIDEVersion;
 Begin
-  For ver In RuleEngine.DelphiVersions.InstalledVersions Do
-    DelphiVersionComboBox.Items.Add(ver.Name);
-
   RuleEngine.Load;
   _dontsave := False;
 
@@ -133,9 +134,14 @@ Begin
     Self.OpenFile(ParamStr(1));
 
     PostMessage(Self.Handle, WM_QUIT, 0, 0);
-  End
-  Else
-    Self.RefreshRules;
+
+    Exit;
+  End;
+
+  For ver In RuleEngine.DelphiVersions.InstalledVersions Do
+    DelphiVersionComboBox.Items.Add(ver.Name);
+
+  Self.RefreshRules;
 End;
 
 Procedure TBDSLauncherMainForm.FormDestroy(Sender: TObject);
@@ -191,6 +197,48 @@ Begin
   rule.AlwaysNewInstance := AlwaysNewInstanceRadioButton.Checked;
 
   UpdateSelectedTreeNode;
+End;
+
+Procedure TBDSLauncherMainForm.MoveRuleClick(Sender: TObject);
+Var
+  thisnode, targetnode: TTreeNode;
+Begin
+  thisnode := RulesTreeView.Selected;
+
+  If Sender = Moveup1 Then
+  Begin
+    targetnode := thisnode.GetPrev;
+    While Assigned(targetnode) And Assigned(targetnode.Parent) Do
+      targetnode := targetnode.Parent;
+  End
+  Else
+  Begin
+    targetnode := thisnode.GetNext;
+    While Assigned(targetnode) And Assigned(targetnode.Parent) Do
+      targetnode := targetnode.GetNext;
+  End;
+
+  If Not Assigned(targetnode) Then
+    Exit;
+
+  RulesTreeView.Items.BeginUpdate;
+  Try
+    If Sender = Moveup1 Then
+    Begin
+      thisnode.MoveTo(targetnode, naInsert);
+      thisnode.Expand(False);
+    End
+    Else
+    Begin
+      targetnode.MoveTo(thisnode, naInsert);
+      targetnode.Expand(False);
+    End;
+
+    TRule(thisnode.Data).Order := thisnode.Index;
+    TRule(targetnode.Data).Order := targetnode.Index;
+  Finally
+    RulesTreeView.Items.EndUpdate;
+  End;
 End;
 
 Procedure TBDSLauncherMainForm.Newrule1Click(Sender: TObject);
@@ -270,6 +318,8 @@ End;
 Procedure TBDSLauncherMainForm.PopupMenuPopup(Sender: TObject);
 Begin
   Deleterule1.Enabled := Assigned(RulesTreeView.Selected);
+  Moveup1.Enabled := Assigned(RulesTreeView.Selected);
+  Movedown1.Enabled := Assigned(RulesTreeView.Selected);
 End;
 
 Procedure TBDSLauncherMainForm.RefreshRules;
@@ -292,6 +342,9 @@ Begin
           RulesTreeView.Items.AddChild(tn, s);
 
         tn.Expand(False);
+
+        // Automatically reset order in case it got messed up
+        RuleEngine.Rule[rulename].Order := tn.Index;
       End;
     Finally
       RulesTreeView.Items.EndUpdate;
@@ -307,6 +360,9 @@ Var
   rnode: TTreeNode;
 Begin
   rnode := RulesTreeView.Selected;
+
+  While Assigned(rnode.Parent) Do
+    rnode := rnode.Parent;
 
   If rnode <> Node Then
   Begin

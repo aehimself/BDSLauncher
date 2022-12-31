@@ -156,6 +156,13 @@ Begin
     inRegistry.CloseKey;
   End;
 
+  If inRegistry.OpenKey(AEBDSLAUNCHERROOT + inPath + '\Shell\Open\Command', True) Then
+  Try
+    inRegistry.WriteString('', ParamStr(0) + ' "%1"');
+  Finally
+    inRegistry.CloseKey;
+  End;
+
   If icon.IsEmpty Then
     icon := ParamStr(0);
   If inRegistry.OpenKey(AEBDSLAUNCHERROOT + inPath+ '\DefaultIcon', True) Then

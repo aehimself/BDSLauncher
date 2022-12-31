@@ -24,6 +24,7 @@ Type
     DelphiVersion: String;
     InstanceCaptionContains: String;
     NewInstanceParams: String;
+    Order: Word;
     Function DisplayName: String;
   End;
 
@@ -32,6 +33,7 @@ Type
     _dvers: TAEDelphiVersions;
     _rules: TObjectDictionary<String, TRule>;
     Procedure SetRule(Const inRuleName: String; Const inRule: TRule);
+    Function Compare(Const inItem1, inItem2: String): Integer;
     Function GetRule(Const inRuleName: String): TRule;
     Function GetRules: TArray<String>;
   strict protected
@@ -52,7 +54,7 @@ Var
 
 Implementation
 
-Uses System.SysUtils, Masks;
+Uses System.SysUtils, System.Masks, System.Generics.Defaults;
 
 Const
   TXT_ALWAYSNEWINSTANCE = 'alwaysnewinstance';
@@ -60,6 +62,7 @@ Const
   TXT_DELPHIVERSION = 'delphiversion';
   TXT_INSTANCECAPTIONCONTAINS = 'instancecaptioncontains';
   TXT_NEWINSTANCEPARAMS = 'newinstanceparams';
+  TXT_ORDER = 'order';
 
 //
 // TRule
@@ -95,6 +98,9 @@ Begin
 
   If Not Self.NewInstanceParams.IsEmpty Then
     Result.AddPair(TXT_NEWINSTANCEPARAMS, Self.NewInstanceParams);
+
+  If Self.Order <> 0 Then
+    Result.AddPair(TXT_ORDER, TJSONNumber.Create(Self.Order));
 End;
 
 Procedure TRule.InternalClear;
@@ -106,6 +112,7 @@ Begin
   Self.FileMasks := '';
   Self.InstanceCaptionContains := '';
   Self.NewInstanceParams := '';
+  Self.Order := 0;
 End;
 
 Procedure TRule.SetAsJSON(Const inJSON: TJSONObject);
@@ -117,11 +124,22 @@ Begin
   inJSON.TryGetValue<String>(TXT_FILEMASKS, Self.FileMasks);
   inJSON.TryGetValue<String>(TXT_INSTANCECAPTIONCONTAINS, Self.InstanceCaptionContains);
   inJSON.TryGetValue<String>(TXT_NEWINSTANCEPARAMS, Self.NewInstanceParams);
+  inJSON.TryGetValue<Word>(TXT_ORDER, Self.Order);
 End;
 
 //
 // TRuleEngine
 //
+
+Function TRuleEngine.Compare(Const inItem1, inItem2: String): Integer;
+Begin
+  // From help:
+  // Result is less than zero     ->  inItem1 is less than inItem2 (BEFORE in list)
+  // Result is equal to zero      ->  inItem1 is equal to inItem2
+  // Result is greater than zero  ->  inItem1 is greater than inItem2 (AFTER in list)
+
+  Result := _rules[inItem1].Order - _rules[inItem2].Order;
+End;
 
 Constructor TRuleEngine.Create(Const inSettingsFileName: String);
 Begin
@@ -169,16 +187,26 @@ Begin
     If Not Assigned(ver) Then
       Continue;
 
+    If rule.AlwaysNewInstance Then
+    Begin
+      ver.NewInstanceParams := rule.NewInstanceParams;
+      ver.NewIDEInstance.OpenFile(inFileName);
+
+      Result := True;
+      Exit;
+    End
+    Else
+      For inst In ver.Instances Do
+        If inst.IDECaption.ToLower.Contains(rule.InstanceCaptionContains.ToLower) Then
+        Begin
+          inst.OpenFile(inFileName);
+
+          Result := True;
+          Exit;
+        End;
+
     lastmatchedversion := ver;
     lastmatchedversion.NewInstanceParams := rule.NewInstanceParams;
-
-    For inst In ver.Instances Do
-      If inst.IDECaption.ToLower.Contains(rule.InstanceCaptionContains.ToLower) Then
-      Begin
-        inst.OpenFile(inFileName);
-        Result := True;
-        Exit;
-      End;
   End;
 
   If Assigned(lastmatchedversion) Then
@@ -210,7 +238,7 @@ Function TRuleEngine.GetRules: TArray<String>;
 Begin
   Result := _rules.Keys.ToArray;
 
-  TArray.Sort<String>(Result);
+  TArray.Sort<String>(Result, TComparer<String>.Construct(Compare));
 End;
 
 Procedure TRuleEngine.InternalClear;

@@ -38,7 +38,7 @@ object LaunchFileForm: TLaunchFileForm
   object DelphiVersionComboBox: TComboBox
     Left = 8
     Top = 29
-    Width = 298
+    Width = 294
     Height = 23
     Style = csDropDownList
     Anchors = [akLeft, akTop, akRight]
@@ -48,21 +48,22 @@ object LaunchFileForm: TLaunchFileForm
   object DelphiInstanceComboBox: TComboBox
     Left = 8
     Top = 88
-    Width = 298
+    Width = 294
     Height = 23
     Style = csDropDownList
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 1
+    OnChange = DelphiInstanceComboBoxChange
   end
   object OpenButton: TButton
     Left = 8
     Top = 128
-    Width = 298
+    Width = 294
     Height = 25
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Open'
     Default = True
+    ModalResult = 1
     TabOrder = 2
-    OnClick = OpenButtonClick
   end
 end

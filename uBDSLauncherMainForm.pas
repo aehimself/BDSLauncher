@@ -76,7 +76,8 @@ Var
 
 Implementation
 
-Uses WinApi.Windows, WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations;
+Uses WinApi.Windows, WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations,
+     uDetectDelphiVersionOfProject;
 
 {$R *.dfm}
 
@@ -286,6 +287,7 @@ End;
 Procedure TBDSLauncherMainForm.OpenFile(Const inFileName: String);
 Var
   lff: TLaunchFileForm;
+  determinedversion: String;
 Begin
   If Not FileExists(inFileName) Then
     Raise EArgumentException.Create(inFileName + ' does not exist!');
@@ -309,7 +311,22 @@ Begin
   Try
     lff.Caption := inFileName;
 
-    lff.ShowModal;
+    // Attempt to detect the Delphi version used to create said .dpr or .dproj. If detection is successful, change the
+    // default item in the combobox.
+    determinedversion := DetectDelphiVersion(inFileName);
+    If Not determinedversion.IsEmpty Then
+      lff.DelphiVersionDetected(determinedversion);
+
+    If lff.ShowModal <> mrOk Then
+      Exit;
+
+    If Assigned(lff.SelectedInstance) Then
+      lff.SelectedInstance.OpenFile(inFileName)
+    Else If Assigned(lff.SelectedVersion) Then
+    Begin
+      lff.SelectedVersion.NewInstanceParams := inFileName;
+      lff.SelectedVersion.NewIDEInstance;
+    End;
   Finally
     lff.Free;
   End;

@@ -10,7 +10,7 @@ Unit uLaunchFileForm;
 
 Interface
 
-Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, AE.IDE.DelphiVersions, AE.IDE.Versions;
+Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, AE.IDE.Versions;
 
 Type
   TLaunchFileForm = Class(TForm)
@@ -19,27 +19,51 @@ Type
     DelphiInstanceLabel: TLabel;
     DelphiInstanceComboBox: TComboBox;
     OpenButton: TButton;
-    procedure DelphiVersionComboBoxChange(Sender: TObject);
-    procedure OpenButtonClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
+    Procedure DelphiVersionComboBoxChange(Sender: TObject);
+    Procedure FormCreate(Sender: TObject);
+    Procedure DelphiInstanceComboBoxChange(Sender: TObject);
   strict private
     _selectedinstance: TAEIDEInstance;
+    _selectedversion: TAEIDEVersion;
     Procedure RefreshInstances;
     Procedure RefreshVersions;
     Function InstanceCaption(Const inIDEInstance: TAEIDEInstance): String;
   public
+    Procedure DelphiVersionDetected(Const inDelphiVersion: String);
     Property SelectedInstance: TAEIDEInstance Read _selectedinstance;
+    Property SelectedVersion: TAEIDEVersion Read _selectedversion;
   End;
 
 Implementation
 
-Uses System.SysUtils, uRuleEngine;
+Uses System.SysUtils, uRuleEngine, Vcl.Dialogs, System.UITypes;
 
 {$R *.dfm}
 
+Procedure TLaunchFileForm.DelphiInstanceComboBoxChange(Sender: TObject);
+Begin
+  If DelphiInstanceComboBox.ItemIndex > -1 Then
+    _selectedinstance := DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex] As TAEIDEInstance
+  Else
+    _selectedinstance := nil;
+End;
+
 Procedure TLaunchFileForm.DelphiVersionComboBoxChange(Sender: TObject);
 Begin
+  If DelphiVersionComboBox.ItemIndex > -1 Then
+    _selectedversion := DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion
+  Else
+    _selectedversion := nil;
+
   RefreshInstances;
+End;
+
+Procedure TLaunchFileForm.DelphiVersionDetected(Const inDelphiVersion: String);
+Begin
+  If DelphiVersionComboBox.Items.IndexOf(inDelphiVersion) <> -1 Then
+    DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.IndexOf(inDelphiVersion)
+  Else
+    MessageDlg('Selected project was created with ' + inDelphiVersion + ', which is not installed on this PC.', mtWarning, [mbOK], 0);
 End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
@@ -52,27 +76,14 @@ Begin
   Result := inIDEInstance.IDECaption + ' (PID: ' + inIDEInstance.PID.ToString + ')';
 End;
 
-Procedure TLaunchFileForm.OpenButtonClick(Sender: TObject);
-Begin
-  _selectedinstance := DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex] As TAEIDEInstance;
-
-  If Not Assigned(_selectedinstance) Then
-  Begin
-    (DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion).NewInstanceParams := Self.Caption;
-    (DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion).NewIDEInstance;
-  End
-  Else
-    _selectedinstance.OpenFile(Self.Caption);
-
-  Self.ModalResult := mrOk;
-End;
-
 Procedure TLaunchFileForm.RefreshInstances;
 Var
   inst: TAEIDEInstance;
   selpid: Cardinal;
   npos: Integer;
 Begin
+  _selectedinstance := nil;
+
   DelphiInstanceComboBox.Items.BeginUpdate;
   Try
     If DelphiInstanceComboBox.ItemIndex = -1 Then
@@ -83,7 +94,15 @@ Begin
     DelphiInstanceComboBox.Items.Clear;
 
     If DelphiVersionComboBox.ItemIndex = -1 Then
+    Begin
+      DelphiInstanceComboBox.Enabled := False;
+      OpenButton.Enabled := False;
+
       Exit;
+    End;
+
+    DelphiInstanceComboBox.Enabled := True;
+    OpenButton.Enabled := True;
 
     DelphiInstanceComboBox.Items.Add('New instance...');
 
@@ -97,10 +116,10 @@ Begin
 
     If DelphiInstanceComboBox.ItemIndex = -1 Then
       DelphiInstanceComboBox.ItemIndex := 0;
+
+    DelphiInstanceComboBoxChange(nil);
   Finally
     DelphiInstanceComboBox.Items.EndUpdate;
-
-    OpenButton.Enabled := DelphiInstanceComboBox.Items.Count > 0;
   End;
 End;
 
@@ -109,6 +128,9 @@ Var
   dver: TAEIDEVersion;
   sel, npos: Integer;
 Begin
+  _selectedversion := nil;
+  _selectedinstance := nil;
+
   DelphiVersionComboBox.Items.BeginUpdate;
   Try
     If DelphiVersionComboBox.ItemIndex = -1 Then
@@ -127,17 +149,20 @@ Begin
     End;
 
     If DelphiVersionComboBox.Items.Count = 0 Then
+    Begin
+      DelphiVersionComboBox.Enabled := False;
       Exit;
+    End;
+
+    DelphiVersionComboBox.Enabled := True;
 
     If DelphiVersionComboBox.ItemIndex = -1 Then
       DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.Count - 1;
+
+    DelphiVersionComboBoxChange(nil);
   Finally
     DelphiVersionComboBox.Items.EndUpdate;
   End;
-
-  DelphiInstanceComboBox.Enabled := DelphiVersionComboBox.Items.Count > 0;
-
-  RefreshInstances;
 End;
 
 End.

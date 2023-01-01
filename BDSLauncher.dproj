@@ -93,6 +93,7 @@
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <Debugger_RunParams>C:\LocalWork\_DelphiComponents\AEFramework\AE.Comp.DBGrid.pas</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -121,6 +122,7 @@
         </DCCReference>
         <DCCReference Include="uRuleEngine.pas"/>
         <DCCReference Include="uFileAssociations.pas"/>
+        <DCCReference Include="uDetectDelphiVersionOfProject.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

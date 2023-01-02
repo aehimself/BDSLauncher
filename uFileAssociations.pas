@@ -21,7 +21,7 @@ Const
   CLASSESROOT = '\SOFTWARE\Classes\';
   AEBDSLAUNCHERROOT = CLASSESROOT + 'AEBDSLauncher';
   BDSLAUNCHERBACKUP = 'AEBDSLauncherBackup';
-  CHANGEEXTENSIONS : Array[0..5] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk');
+  CHANGEEXTENSIONS : Array[0..6] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj');
 
 Procedure NotifyAssociationsChange;
 Begin

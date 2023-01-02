@@ -121,6 +121,8 @@ End;
 Procedure TBDSLauncherMainForm.FormCreate(Sender: TObject);
 Var
   ver: TAEIDEVersion;
+  fname: String;
+  a: Integer;
 Begin
   RuleEngine.Load;
   _dontsave := False;
@@ -132,7 +134,16 @@ Begin
     Self.WindowState := wsMinimized;
     Self.Visible := False;
 
-    Self.OpenFile(ParamStr(1));
+    fname := ParamStr(1);
+
+    If fname.StartsWith('"') And fname.EndsWith('"') Then
+      fname := fname.Substring(1, fname.Length - 2)
+    Else
+    Begin
+      For a := 2 To ParamCount Do
+        fname := fname + ' ' + ParamStr(a);
+    End;
+    Self.OpenFile(fname);
 
     PostMessage(Self.Handle, WM_QUIT, 0, 0);
 
@@ -188,9 +199,9 @@ Procedure TBDSLauncherMainForm.InstanceRadioClick(Sender: TObject);
 Var
   rule: TRule;
 Begin
-  InstanceContainsEdit.Enabled := SelectedInstanceRadioButton.Checked;
-
   rule := SelectedRule;
+
+  InstanceContainsEdit.Enabled := SelectedInstanceRadioButton.Checked And Assigned(rule);
 
   If _loading Or Not Assigned(rule) Then
     Exit;
@@ -363,6 +374,9 @@ Begin
         // Automatically reset order in case it got messed up
         RuleEngine.Rule[rulename].Order := tn.Index;
       End;
+
+      If RulesTreeView.Items.Count = 0 Then
+        RUlesTreeViewChange(nil, nil);
     Finally
       RulesTreeView.Items.EndUpdate;
     End;
@@ -378,7 +392,7 @@ Var
 Begin
   rnode := RulesTreeView.Selected;
 
-  While Assigned(rnode.Parent) Do
+  While Assigned(rnode) And Assigned(rnode.Parent) Do
     rnode := rnode.Parent;
 
   If rnode <> Node Then
@@ -414,6 +428,8 @@ Begin
     Else
       SelectedInstanceRadioButton.Checked := True;
     InstanceRadioClick(nil);
+    AlwaysNewInstanceRadioButton.Enabled := Assigned(rule);
+    SelectedInstanceRadioButton.Enabled := Assigned(rule);
 
     InstanceParamsEdit.Enabled := Assigned(rule);
     If Assigned(rule) Then

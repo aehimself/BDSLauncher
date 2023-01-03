@@ -43,7 +43,7 @@ Type
   public
     Constructor Create(Const inSettingsFileName: String); Override;
     Destructor Destroy; Override;
-    Function LaunchByRules(Const inFileName: String): Boolean;
+    Function LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
     Property DelphiVersions: TAEDelphiVersions Read _dvers;
     Property Rule[Const inRuleName: String]: TRule Read GetRule Write SetRule;
     Property Rules: TArray<String> Read GetRules;
@@ -70,7 +70,10 @@ Const
 
 Function TRule.DisplayName: String;
 Begin
-  Result := 'Opened with Delphi ' + Self.DelphiVersion + sLineBreak;
+  If Self.DelphiVersion.IsEmpty Then
+    Result := 'Auto-detect Delphi version, or use latest' + sLineBreak
+  Else
+    Result := 'Explicitly use ' + Self.DelphiVersion + sLineBreak;
 
   If Self.AlwaysNewInstance Then Result := Result + 'Always in new instance'
     Else
@@ -157,7 +160,7 @@ Begin
   inherited;
 End;
 
-Function TRuleEngine.LaunchByRules(Const inFileName: String): Boolean;
+Function TRuleEngine.LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
 Var
   rulename, mask: String;
   rule: TRule;
@@ -181,7 +184,12 @@ Begin
       anymatch := anymatch Or MatchesMask(inFileName, mask);
     If Not anymatch Then Continue;
 
-    ver := _dvers.VersionByName(rule.DelphiVersion);
+    If Not rule.DelphiVersion.IsEmpty Then
+      ver := _dvers.VersionByName(rule.DelphiVersion) // Rule explicitly specified a Delphi version
+    Else If Not inAutoDetectedVersion.IsEmpty Then
+      ver := _dvers.VersionByName(inAutoDetectedVersion) // Auto detection was enabled, version could be detected
+    Else
+      ver := _dvers.LatestVersion; // Auto detection was specified by the rule, but version was not detected. In this case, use the latest
 
     // Delphi version requested by this rule is not installed (?)
     If Not Assigned(ver) Then

@@ -88,13 +88,19 @@ Uses WinApi.Windows, WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dial
 Procedure TBDSLauncherMainForm.DelphiVersionComboBoxChange(Sender: TObject);
 Var
   rule: TRule;
+  ver: TAEIDEVersion;
 Begin
   rule := SelectedRule;
 
   If _loading Or Not Assigned(rule) Then
     Exit;
 
-  rule.DelphiVersion := DelphiVersionComboBox.Text;
+  ver := DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion;
+
+  If Assigned(ver) Then
+    rule.DelphiVersion := ver.Name
+  Else
+    rule.DelphiVersion := '';
 
   UpdateSelectedTreeNode;
 End;
@@ -150,8 +156,15 @@ Begin
     Exit;
   End;
 
-  For ver In RuleEngine.DelphiVersions.InstalledVersions Do
-    DelphiVersionComboBox.Items.Add(ver.Name);
+  DelphiVersionComboBox.Items.BeginUpdate;
+  Try
+    DelphiVersionComboBox.Items.Add('Auto detect or use latest');
+
+    For ver In RuleEngine.DelphiVersions.InstalledVersions Do
+      DelphiVersionComboBox.Items.AddObject(ver.Name, ver);
+  Finally
+    DelphiVersionComboBox.Items.EndUpdate;
+  End;
 
   Self.RefreshRules;
 End;
@@ -313,8 +326,11 @@ Begin
     Exit;
   End;
 
+  // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.
+  determinedversion := DetectDelphiVersion(inFileName);
+
   // If any rules matches the file and launching is successful, no form is going to be needed either
-  If RuleEngine.LaunchByRules(inFileName) Then
+  If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
     Exit;
 
   // We ran out of options for the time being. Show the form and ask where to open the file
@@ -322,9 +338,7 @@ Begin
   Try
     lff.Caption := inFileName;
 
-    // Attempt to detect the Delphi version used to create said .dpr or .dproj. If detection is successful, change the
-    // default item in the combobox.
-    determinedversion := DetectDelphiVersion(inFileName);
+    // If Delphi version detection was successful, change the default item in the combobox.
     If Not determinedversion.IsEmpty Then
       lff.DelphiVersionDetected(determinedversion);
 
@@ -413,7 +427,10 @@ Begin
 
     DelphiVersionComboBox.Enabled := Assigned(rule);
     If Assigned(rule) Then
-      DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.IndexOf(rule.DelphiVersion)
+      If Not rule.DelphiVersion.IsEmpty Then
+        DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.IndexOf(rule.DelphiVersion)
+      Else
+        DelphiVersionComboBox.ItemIndex := 0
     Else
       DelphiVersionComboBox.ItemIndex := -1;
 

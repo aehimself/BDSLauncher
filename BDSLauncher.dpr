@@ -1,12 +1,11 @@
 ﻿program BDSLauncher;
 
-
-
 uses
   Vcl.Forms,
+  uBDSLogger in 'uBDSLogger.pas',
+  uSettings in 'uSettings.pas',
   uBDSLauncherMainForm in 'uBDSLauncherMainForm.pas' {BDSLauncherMainForm},
   uLaunchFileForm in 'uLaunchFileForm.pas' {LaunchFileForm},
-  uRuleEngine in 'uRuleEngine.pas',
   uFileAssociations in 'uFileAssociations.pas',
   uDetectDelphiVersionOfProject in 'uDetectDelphiVersionOfProject.pas';
 
@@ -14,7 +13,8 @@ uses
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
+  Application.MainFormOnTaskbar := False;
+  Application.Title := 'AE BDS Launcher';
   Application.CreateForm(TBDSLauncherMainForm, BDSLauncherMainForm);
   Application.Run;
 end.

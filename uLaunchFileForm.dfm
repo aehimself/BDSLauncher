@@ -1,10 +1,10 @@
 object LaunchFileForm: TLaunchFileForm
   Left = 0
   Top = 0
-  BorderIcons = [biSystemMenu, biMaximize]
+  BorderIcons = [biSystemMenu]
   Caption = 'LaunchFileForm'
-  ClientHeight = 161
-  ClientWidth = 314
+  ClientHeight = 163
+  ClientWidth = 310
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -12,15 +12,15 @@ object LaunchFileForm: TLaunchFileForm
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
-  FormStyle = fsStayOnTop
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnResize = FormResize
   DesignSize = (
-    314
-    161)
+    310
+    163)
   TextHeight = 15
   object DelphiVersionLabel: TLabel
-    Left = 8
+    Left = 16
     Top = 8
     Width = 217
     Height = 15
@@ -28,17 +28,17 @@ object LaunchFileForm: TLaunchFileForm
     Caption = 'Select Delphi version to open the file with:'
   end
   object DelphiInstanceLabel: TLabel
-    Left = 8
-    Top = 66
+    Left = 16
+    Top = 67
     Width = 206
     Height = 15
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Select the instance to open the file with:'
   end
   object DelphiVersionComboBox: TComboBox
-    Left = 8
+    Left = 16
     Top = 29
-    Width = 294
+    Width = 274
     Height = 23
     Style = csDropDownList
     Anchors = [akLeft, akTop, akRight]
@@ -46,9 +46,9 @@ object LaunchFileForm: TLaunchFileForm
     OnChange = DelphiVersionComboBoxChange
   end
   object DelphiInstanceComboBox: TComboBox
-    Left = 8
+    Left = 16
     Top = 88
-    Width = 294
+    Width = 274
     Height = 23
     Style = csDropDownList
     Anchors = [akLeft, akTop, akRight]
@@ -56,9 +56,9 @@ object LaunchFileForm: TLaunchFileForm
     OnChange = DelphiInstanceComboBoxChange
   end
   object OpenButton: TButton
-    Left = 8
+    Left = 16
     Top = 128
-    Width = 294
+    Width = 274
     Height = 25
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Open'

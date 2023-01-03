@@ -2,8 +2,8 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   Left = 0
   Top = 0
   Caption = 'AE BDSLauncher'
-  ClientHeight = 394
-  ClientWidth = 633
+  ClientHeight = 392
+  ClientWidth = 625
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -15,18 +15,20 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnResize = FormResize
   TextHeight = 15
   object Splitter: TSplitter
     Left = 250
     Top = 0
     Width = 5
-    Height = 394
+    Height = 392
+    OnMoved = SplitterMoved
   end
   object RulesTreeView: TTreeView
     Left = 0
     Top = 0
     Width = 250
-    Height = 394
+    Height = 392
     Align = alLeft
     BorderStyle = bsNone
     HideSelection = False
@@ -40,17 +42,19 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     OnCollapsing = RulesTreeViewCollapsing
     OnMouseDown = RulesTreeViewMouseDown
   end
-  object RuleEditorPanel: TPanel
+  object ScrollBox1: TScrollBox
     Left = 255
     Top = 0
-    Width = 378
-    Height = 394
+    Width = 370
+    Height = 392
     Align = alClient
-    BevelOuter = bvNone
+    BorderStyle = bsNone
+    Color = clWindow
+    ParentColor = False
     TabOrder = 1
     DesignSize = (
-      378
-      394)
+      370
+      392)
     object FileMaskLabel: TLabel
       Left = 8
       Top = 16
@@ -79,38 +83,10 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       Height = 15
       Caption = 'New instance parameters:'
     end
-    object InstanceContainsEdit: TEdit
-      Left = 28
-      Top = 299
-      Width = 344
-      Height = 23
-      Anchors = [akLeft, akTop, akRight]
-      TabOrder = 4
-      OnChange = InstanceContainsEditChange
-    end
-    object InstanceParamsEdit: TEdit
-      Left = 8
-      Top = 363
-      Width = 364
-      Height = 23
-      Anchors = [akLeft, akTop, akRight]
-      TabOrder = 5
-      OnChange = InstanceParamsEditChange
-    end
-    object DelphiVersionComboBox: TComboBox
-      Left = 8
-      Top = 181
-      Width = 364
-      Height = 22
-      Style = csOwnerDrawFixed
-      Anchors = [akLeft, akTop, akRight]
-      TabOrder = 1
-      OnChange = DelphiVersionComboBoxChange
-    end
     object FileMasksMemo: TMemo
       Left = 8
       Top = 37
-      Width = 364
+      Width = 356
       Height = 100
       Anchors = [akLeft, akTop, akRight]
       ScrollBars = ssBoth
@@ -118,10 +94,20 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       WordWrap = False
       OnChange = FileMasksMemoChange
     end
+    object DelphiVersionComboBox: TComboBox
+      Left = 8
+      Top = 181
+      Width = 356
+      Height = 22
+      Style = csOwnerDrawFixed
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 1
+      OnChange = DelphiVersionComboBoxChange
+    end
     object AlwaysNewInstanceRadioButton: TRadioButton
       Left = 8
       Top = 232
-      Width = 364
+      Width = 356
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Always start in a new instance'
@@ -131,7 +117,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object SelectedInstanceRadioButton: TRadioButton
       Left = 8
       Top = 255
-      Width = 364
+      Width = 356
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Use an existing instance'
@@ -139,6 +125,24 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       TabOrder = 3
       TabStop = True
       OnClick = InstanceRadioClick
+    end
+    object InstanceContainsEdit: TEdit
+      Left = 28
+      Top = 299
+      Width = 336
+      Height = 23
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 4
+      OnChange = InstanceContainsEditChange
+    end
+    object InstanceParamsEdit: TEdit
+      Left = 8
+      Top = 363
+      Width = 356
+      Height = 23
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 5
+      OnChange = InstanceParamsEditChange
     end
   end
   object PopupMenu: TPopupMenu
@@ -173,6 +177,10 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Top = 80
     object File1: TMenuItem
       Caption = '&File'
+      object Enablelogging1: TMenuItem
+        Caption = '&Enable logging'
+        OnClick = Enablelogging1Click
+      end
       object Savesettings1: TMenuItem
         Caption = '&Save settings'
         OnClick = Savesettings1Click

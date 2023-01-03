@@ -1,5 +1,5 @@
 ﻿{
-  AE BDS Launcher © 2022 by Akos Eigler is licensed under CC BY 4.0.
+  AE BDS Launcher © 2023 by Akos Eigler is licensed under CC BY 4.0.
   To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/
 
   This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt,
@@ -10,25 +10,14 @@ Unit uBDSLauncherMainForm;
 
 Interface
 
-Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uRuleEngine;
+Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uSettings;
 
 Type
   TBDSLauncherMainForm = Class(TForm)
     RulesTreeView: TTreeView;
-    RuleEditorPanel: TPanel;
     PopupMenu: TPopupMenu;
     Newrule1: TMenuItem;
     Deleterule1: TMenuItem;
-    FileMaskLabel: TLabel;
-    DelphiVersionLabel: TLabel;
-    CaptionContainsLabel: TLabel;
-    InstanceContainsEdit: TEdit;
-    InstanceParamsLabel: TLabel;
-    InstanceParamsEdit: TEdit;
-    DelphiVersionComboBox: TComboBox;
-    FileMasksMemo: TMemo;
-    AlwaysNewInstanceRadioButton: TRadioButton;
-    SelectedInstanceRadioButton: TRadioButton;
     Splitter: TSplitter;
     MainMenu: TMainMenu;
     File1: TMenuItem;
@@ -44,6 +33,18 @@ Type
     N2: TMenuItem;
     Moveup1: TMenuItem;
     Movedown1: TMenuItem;
+    Enablelogging1: TMenuItem;
+    ScrollBox1: TScrollBox;
+    FileMaskLabel: TLabel;
+    FileMasksMemo: TMemo;
+    DelphiVersionLabel: TLabel;
+    DelphiVersionComboBox: TComboBox;
+    AlwaysNewInstanceRadioButton: TRadioButton;
+    SelectedInstanceRadioButton: TRadioButton;
+    CaptionContainsLabel: TLabel;
+    InstanceContainsEdit: TEdit;
+    InstanceParamsLabel: TLabel;
+    InstanceParamsEdit: TEdit;
     Procedure FormCreate(Sender: TObject);
     Procedure Deleterule1Click(Sender: TObject);
     Procedure Newrule1Click(Sender: TObject);
@@ -62,6 +63,9 @@ Type
     Procedure akeover1Click(Sender: TObject);
     Procedure Giveback1Click(Sender: TObject);
     Procedure MoveRuleClick(Sender: TObject);
+    Procedure Enablelogging1Click(Sender: TObject);
+    Procedure FormResize(Sender: TObject);
+    Procedure SplitterMoved(Sender: TObject);
   strict private
     _dontsave: Boolean;
     _loading: Boolean;
@@ -77,7 +81,7 @@ Var
 Implementation
 
 Uses WinApi.Windows, WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations,
-     uDetectDelphiVersionOfProject;
+     uDetectDelphiVersionOfProject, uBDSLogger;
 
 {$R *.dfm}
 
@@ -105,6 +109,13 @@ Begin
   UpdateSelectedTreeNode;
 End;
 
+Procedure TBDSLauncherMainForm.Enablelogging1Click(Sender: TObject);
+Begin
+  Enablelogging1.Checked := Not Enablelogging1.Checked;
+
+  Settings.EnableLogging := Enablelogging1.Checked;
+End;
+
 Procedure TBDSLauncherMainForm.Exit1Click(Sender: TObject);
 Begin
   Self.Close;
@@ -130,7 +141,19 @@ Var
   fname: String;
   a: Integer;
 Begin
-  RuleEngine.Load;
+  Settings.Load;
+
+  _loading := True;
+  Try
+    Self.Height := Settings.MainWindowHeight;
+    Self.Width := Settings.MainWindowWidth;
+    RulesTreeView.Width := Settings.RuleListWidth;
+  Finally
+    _loading := False;
+  End;
+
+  BDSLogger.Log('BDS launcher is starting up');
+
   _dontsave := False;
 
   If Not ParamStr(1).IsEmpty Then
@@ -149,12 +172,15 @@ Begin
       For a := 2 To ParamCount Do
         fname := fname + ' ' + ParamStr(a);
     End;
+
     Self.OpenFile(fname);
 
     PostMessage(Self.Handle, WM_QUIT, 0, 0);
 
     Exit;
   End;
+
+  BDSLogger.Log('No file name was provided, showing rule editor form...');
 
   DelphiVersionComboBox.Items.BeginUpdate;
   Try
@@ -166,13 +192,23 @@ Begin
     DelphiVersionComboBox.Items.EndUpdate;
   End;
 
+  Enablelogging1.Checked := Settings.EnableLogging;
   Self.RefreshRules;
 End;
 
 Procedure TBDSLauncherMainForm.FormDestroy(Sender: TObject);
 Begin
-  If Not _dontsave And RuleEngine.IsLoaded Then
-    RuleEngine.Save;
+  If Not _dontsave And Settings.IsLoaded Then
+    Settings.Save;
+End;
+
+Procedure TBDSLauncherMainForm.FormResize(Sender: TObject);
+Begin
+  If _loading Then
+    Exit;
+
+  Settings.MainWindowHeight := Self.Height;
+  Settings.MainWindowWidth := Self.Width;
 End;
 
 Procedure TBDSLauncherMainForm.Giveback1Click(Sender: TObject);
@@ -312,26 +348,44 @@ Procedure TBDSLauncherMainForm.OpenFile(Const inFileName: String);
 Var
   lff: TLaunchFileForm;
   determinedversion: String;
+  ver: TAEIDEVersion;
+  inst: TAEIDEInstance;
 Begin
+  BDSLogger.Log('Attempting to open file ' + inFileName);
+
   If Not FileExists(inFileName) Then
     Raise EArgumentException.Create(inFileName + ' does not exist!');
+
+  BDSLogger.Log('Running Delphi instances:');
+  For ver In RuleEngine.DelphiVersions.InstalledVersions Do
+    For inst In ver.Instances Do
+      BDSLogger.Log(ver.Name + ', ' + inst.IDECaption);
+
+  // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.
+  determinedversion := DetectDelphiVersion(inFileName);
+
+  BDSLogger.Log('Determined Delphi version: ' + determinedversion);
+
+  // If any rules matches the file and launching is successful, no form is going to be needed either
+  If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
+    Exit;
 
   // If there is only one installed version and it has no running instances, don't run any rules or ask how to open it,
   // just start a new instance
   If ((Length(RuleEngine.DelphiVersions.InstalledVersions) = 1) And (Length(RuleEngine.DelphiVersions.InstalledVersions[0].Instances) = 0)) Then
   Begin
+    BDSLogger.Log('No rule applied to the input file, but there''s only one installation and no instances. Starting one...');
+
     RuleEngine.DelphiVersions.InstalledVersions[0].NewInstanceParams := inFileName;
     RuleEngine.DelphiVersions.InstalledVersions[0].NewIDEInstance;
 
     Exit;
   End;
 
-  // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.
-  determinedversion := DetectDelphiVersion(inFileName);
+  BDSLogger.Log('Showing version selector window...');
 
-  // If any rules matches the file and launching is successful, no form is going to be needed either
-  If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
-    Exit;
+  // If we resize the selector form, it's width must be saved. As rules won't change here, we can assume it's safe to do so
+  _dontsave := False;
 
   // We ran out of options for the time being. Show the form and ask where to open the file
   lff := TLaunchFileForm.Create(nil);
@@ -346,9 +400,15 @@ Begin
       Exit;
 
     If Assigned(lff.SelectedInstance) Then
+    Begin
+      BDSLogger.Log(lff.SelectedVersion.Name + ', ' + lff.SelectedInstance.IDECaption + ' was selected to start the file in.');
+
       lff.SelectedInstance.OpenFile(inFileName)
+    End
     Else If Assigned(lff.SelectedVersion) Then
     Begin
+      BDSLogger.Log('A new instance of ' + lff.SelectedVersion.Name + ' was selected to start the file in.');
+
       lff.SelectedVersion.NewInstanceParams := inFileName;
       lff.SelectedVersion.NewIDEInstance;
     End;
@@ -481,8 +541,8 @@ End;
 
 Procedure TBDSLauncherMainForm.Savesettings1Click(Sender: TObject);
 Begin
-  If _dontsave And RuleEngine.IsLoaded Then
-    RuleEngine.Save;
+  If Settings.IsLoaded Then
+    Settings.Save;
 End;
 
 Function TBDSLauncherMainForm.SelectedRule: TRule;
@@ -495,6 +555,14 @@ Begin
     Result := tn.Data
   Else
     Result := nil;
+End;
+
+Procedure TBDSLauncherMainForm.SplitterMoved(Sender: TObject);
+Begin
+  If _loading Then
+    Exit;
+
+  Settings.RuleListWidth := RulesTreeView.Width;
 End;
 
 Procedure TBDSLauncherMainForm.UpdateSelectedTreeNode;

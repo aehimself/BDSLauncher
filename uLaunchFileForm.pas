@@ -10,7 +10,7 @@ Unit uLaunchFileForm;
 
 Interface
 
-Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, AE.IDE.Versions;
+Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, AE.IDE.Versions, WinApi.Messages;
 
 Type
   TLaunchFileForm = Class(TForm)
@@ -22,11 +22,13 @@ Type
     Procedure DelphiVersionComboBoxChange(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure DelphiInstanceComboBoxChange(Sender: TObject);
+    Procedure FormResize(Sender: TObject);
   strict private
     _selectedinstance: TAEIDEInstance;
     _selectedversion: TAEIDEVersion;
     Procedure RefreshInstances;
     Procedure RefreshVersions;
+    Procedure WMNCHitTest(Var inMessage: TWMNCHitTest); Message WM_NCHITTEST;
     Function InstanceCaption(Const inIDEInstance: TAEIDEInstance): String;
   public
     Procedure DelphiVersionDetected(Const inDelphiVersion: String);
@@ -36,7 +38,7 @@ Type
 
 Implementation
 
-Uses System.SysUtils, uRuleEngine, Vcl.Dialogs, System.UITypes;
+Uses System.SysUtils, uSettings, Vcl.Dialogs, System.UITypes, WinApi.Windows;
 
 {$R *.dfm}
 
@@ -68,7 +70,14 @@ End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
 Begin
+  Self.Width := Settings.SelectorWidth;
+
   Self.RefreshVersions;
+End;
+
+Procedure TLaunchFileForm.FormResize(Sender: TObject);
+Begin
+  Settings.SelectorWidth := Self.Width;
 End;
 
 Function TLaunchFileForm.InstanceCaption(Const inIDEInstance: TAEIDEInstance): String;
@@ -162,6 +171,20 @@ Begin
     DelphiVersionComboBoxChange(nil);
   Finally
     DelphiVersionComboBox.Items.EndUpdate;
+  End;
+End;
+
+Procedure TLaunchFileForm.WMNCHitTest(Var inMessage: TWMNCHitTest);
+Begin
+  inherited;
+
+  Case inMessage.Result Of
+    HTTOP, HTBOTTOM:
+      inMessage.Result := HTBORDER;
+    HTTOPLEFT, HTBOTTOMLEFT:
+      inMessage.Result := HTLEFT;
+    HTTOPRIGHT, HTBOTTOMRIGHT:
+      inMessage.Result := HTRIGHT;
   End;
 End;
 

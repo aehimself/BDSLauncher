@@ -91,8 +91,6 @@
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -111,15 +109,14 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="uBDSLogger.pas"/>
+        <DCCReference Include="uSettings.pas"/>
         <DCCReference Include="uBDSLauncherMainForm.pas">
             <Form>BDSLauncherMainForm</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="uLaunchFileForm.pas">
             <Form>LaunchFileForm</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="uRuleEngine.pas"/>
         <DCCReference Include="uFileAssociations.pas"/>
         <DCCReference Include="uDetectDelphiVersionOfProject.pas"/>
         <BuildConfiguration Include="Base">

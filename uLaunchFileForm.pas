@@ -70,6 +70,9 @@ End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
 Begin
+  If Assigned(Screen.MessageFont) Then
+    Self.Font.Assign(Screen.MessageFont);
+
   Self.Width := Settings.SelectorWidth;
 
   Self.RefreshVersions;

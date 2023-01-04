@@ -10,14 +10,11 @@ Unit uBDSLauncherMainForm;
 
 Interface
 
-Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uSettings;
+Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uSettings, WinApi.Windows;
 
 Type
   TBDSLauncherMainForm = Class(TForm)
     RulesTreeView: TTreeView;
-    PopupMenu: TPopupMenu;
-    Newrule1: TMenuItem;
-    Deleterule1: TMenuItem;
     Splitter: TSplitter;
     MainMenu: TMainMenu;
     File1: TMenuItem;
@@ -25,14 +22,11 @@ Type
     Rules1: TMenuItem;
     Savesettings1: TMenuItem;
     N1: TMenuItem;
-    Newrule2: TMenuItem;
-    Deleterule2: TMenuItem;
+    Newrule1: TMenuItem;
+    Deleterule1: TMenuItem;
     Fileassociations1: TMenuItem;
     akeover1: TMenuItem;
     Giveback1: TMenuItem;
-    N2: TMenuItem;
-    Moveup1: TMenuItem;
-    Movedown1: TMenuItem;
     Enablelogging1: TMenuItem;
     ScrollBox1: TScrollBox;
     FileMaskLabel: TLabel;
@@ -45,16 +39,18 @@ Type
     InstanceContainsEdit: TEdit;
     InstanceParamsLabel: TLabel;
     InstanceParamsEdit: TEdit;
+    N2: TMenuItem;
+    Moveup1: TMenuItem;
+    Movedown1: TMenuItem;
+    Renamerule1: TMenuItem;
     Procedure FormCreate(Sender: TObject);
     Procedure Deleterule1Click(Sender: TObject);
     Procedure Newrule1Click(Sender: TObject);
-    Procedure RulesTreeViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     Procedure RulesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
     Procedure RulesTreeViewChange(Sender: TObject; Node: TTreeNode);
     Procedure InstanceContainsEditChange(Sender: TObject);
     Procedure InstanceParamsEditChange(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
-    Procedure PopupMenuPopup(Sender: TObject);
     Procedure DelphiVersionComboBoxChange(Sender: TObject);
     Procedure FileMasksMemoChange(Sender: TObject);
     Procedure InstanceRadioClick(Sender: TObject);
@@ -66,11 +62,17 @@ Type
     Procedure Enablelogging1Click(Sender: TObject);
     Procedure FormResize(Sender: TObject);
     Procedure SplitterMoved(Sender: TObject);
+    Procedure RulesTreeViewDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; Var Accept: Boolean);
+    Procedure RulesTreeViewDragDrop(Sender, Source: TObject; X, Y: Integer);
+    Procedure RulesTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage; Var PaintImages, DefaultDraw: Boolean);
+    Procedure Renamerule1Click(Sender: TObject);
+    Procedure RulesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
   strict private
     _dontsave: Boolean;
     _loading: Boolean;
     Procedure OpenFile(Const inFileName: String);
     Procedure RefreshRules;
+    Procedure MoveNode(inSourceNode, inDestinationNode: TTreeNode);
     Procedure UpdateSelectedTreeNode;
     Function SelectedRule: TRule;
   End;
@@ -80,7 +82,7 @@ Var
 
 Implementation
 
-Uses WinApi.Windows, WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations,
+Uses WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations,
      uDetectDelphiVersionOfProject, uBDSLogger;
 
 {$R *.dfm}
@@ -182,6 +184,9 @@ Begin
 
   BDSLogger.Log('No file name was provided, showing rule editor form...');
 
+  If Assigned(Screen.MessageFont) Then
+    Self.Font.Assign(Screen.MessageFont);
+
   DelphiVersionComboBox.Items.BeginUpdate;
   Try
     DelphiVersionComboBox.Items.Add('Auto detect or use latest');
@@ -260,46 +265,63 @@ Begin
   UpdateSelectedTreeNode;
 End;
 
+Procedure TBDSLauncherMainForm.MoveNode(inSourceNode, inDestinationNode: TTreeNode);
+Var
+  tmp: TTreeNode;
+Begin
+  While Assigned(inSourcenode) And Assigned(inSourceNode.Parent) Do
+    inSourceNode := inSourceNode.Parent;
+
+  While Assigned(inDestinationNode) And Assigned(inDestinationNode.Parent) Do
+    inDestinationNode := inDestinationNode.Parent;
+
+  If Not Assigned(inSourceNode) Or Not Assigned(inDestinationNode) Then
+    Exit;
+
+  If inDestinationNode.Index > inSourceNode.Index Then
+  Begin
+    tmp := inDestinationNode;
+    inDestinationNode := inSourceNode;
+    inSourceNode := tmp;
+  End;
+
+  // Phisically move the node and force-expand it
+  RulesTreeView.Items.BeginUpdate;
+  Try
+    inSourceNode.MoveTo(inDestinationNode, naInsert);
+    inSourceNode.Expand(False);
+  Finally
+    RulesTreeView.Items.EndUpdate;
+  End;
+
+  // Set the order of each rule between the two nodes to represent their new order
+  tmp := inSourceNode;
+  Repeat
+    TRule(tmp.Data).Order := tmp.Index;
+
+    If tmp = inDestinationNode Then
+      Break;
+
+    Repeat
+      tmp := tmp.GetNext;
+    Until Not Assigned(tmp.Parent);
+  Until False;
+End;
+
 Procedure TBDSLauncherMainForm.MoveRuleClick(Sender: TObject);
 Var
-  thisnode, targetnode: TTreeNode;
+  targetnode: TTreeNode;
 Begin
-  thisnode := RulesTreeView.Selected;
-
   If Sender = Moveup1 Then
-  Begin
-    targetnode := thisnode.GetPrev;
-    While Assigned(targetnode) And Assigned(targetnode.Parent) Do
-      targetnode := targetnode.Parent;
-  End
+    targetnode := RulesTreeView.Selected.GetPrev
   Else
   Begin
-    targetnode := thisnode.GetNext;
+    targetnode := RulesTreeView.Selected.GetNext;
     While Assigned(targetnode) And Assigned(targetnode.Parent) Do
       targetnode := targetnode.GetNext;
   End;
 
-  If Not Assigned(targetnode) Then
-    Exit;
-
-  RulesTreeView.Items.BeginUpdate;
-  Try
-    If Sender = Moveup1 Then
-    Begin
-      thisnode.MoveTo(targetnode, naInsert);
-      thisnode.Expand(False);
-    End
-    Else
-    Begin
-      targetnode.MoveTo(thisnode, naInsert);
-      targetnode.Expand(False);
-    End;
-
-    TRule(thisnode.Data).Order := thisnode.Index;
-    TRule(targetnode.Data).Order := targetnode.Index;
-  Finally
-    RulesTreeView.Items.EndUpdate;
-  End;
+  MoveNode(RulesTreeView.Selected, targetnode);
 End;
 
 Procedure TBDSLauncherMainForm.Newrule1Click(Sender: TObject);
@@ -312,7 +334,13 @@ Begin
   If Not InputQuery('Add new rule', 'Rule name:', rulename) Or rulename.IsEmpty Then
     Exit;
 
-  RuleEngine.Rule[rulename] := TRule.Create;
+  If RuleEngine.ContainsRule(rulename) Then
+  Begin
+    MessageDlg('A rule named ' + rulename + ' already exists!', mtError, [mbOK], 0);
+    Exit;
+  End;
+
+  RuleEngine.Rule[rulename].Order := Length(RuleEngine.Rules);
 
   RefreshRules;
 
@@ -337,6 +365,15 @@ Begin
 
   If Not Assigned(tn) Or (MessageDlg('Are you sure you want to delete this rule?', mtConfirmation, [mbYes, mbNo], 0) <> mrYes) Then
     Exit;
+
+  Repeat
+    tn := tn.GetNext;
+
+    If Assigned(tn) And Not Assigned(tn.Parent) Then
+      Dec(TRule(tn.Data).Order);
+  Until Not Assigned(tn);
+
+  tn := RulesTreeView.Selected;
 
   RuleEngine.Rule[tn.Text] := nil;
   tn.Delete;
@@ -417,13 +454,6 @@ Begin
   End;
 End;
 
-Procedure TBDSLauncherMainForm.PopupMenuPopup(Sender: TObject);
-Begin
-  Deleterule1.Enabled := Assigned(RulesTreeView.Selected);
-  Moveup1.Enabled := Assigned(RulesTreeView.Selected);
-  Movedown1.Enabled := Assigned(RulesTreeView.Selected);
-End;
-
 Procedure TBDSLauncherMainForm.RefreshRules;
 Var
   rulename, s: String;
@@ -459,22 +489,40 @@ Begin
   End;
 End;
 
-Procedure TBDSLauncherMainForm.RulesTreeViewChange(Sender: TObject; Node: TTreeNode);
+Procedure TBDSLauncherMainForm.Renamerule1Click(Sender: TObject);
 Var
-  rule: TRule;
-  rnode: TTreeNode;
+  rulename: String;
 Begin
-  rnode := RulesTreeView.Selected;
+  If Not Assigned(RulesTreeView.Selected) Then
+    Exit;
 
-  While Assigned(rnode) And Assigned(rnode.Parent) Do
-    rnode := rnode.Parent;
+  rulename := RulesTreeView.Selected.Text;
 
-  If rnode <> Node Then
+  If Not InputQuery('Rename rule', 'New rule name:', rulename) Or rulename.IsEmpty Then
+    Exit;
+
+  If RuleEngine.ContainsRule(rulename) Then
   Begin
-    RulesTreeView.Selected := rnode;
+    MessageDlg('A rule named ' + rulename + ' already exists!', mtError, [mbOK], 0);
     Exit;
   End;
 
+  RuleEngine.RenameRule(RulesTreeView.Selected.Text, rulename);
+  RulesTreeView.Selected.Text := rulename;
+End;
+
+Procedure TBDSLauncherMainForm.RulesTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage; Var PaintImages, DefaultDraw: Boolean);
+Begin
+  If Assigned(Node.Data) Then
+    Sender.Canvas.Font.Style := [fsBold]
+  Else
+    Sender.Canvas.Font.Style := [fsItalic];
+End;
+
+Procedure TBDSLauncherMainForm.RulesTreeViewChange(Sender: TObject; Node: TTreeNode);
+Var
+  rule: TRule;
+Begin
   rule := SelectedRule;
 
   _loading := True;
@@ -518,31 +566,49 @@ Begin
   End;
 End;
 
+Procedure TBDSLauncherMainForm.RulesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
+Begin
+  AllowChange := Not Assigned(Node.Parent);
+
+  If AllowChange Then
+    Exit;
+
+  While Assigned(Node.Parent) Do
+    Node := Node.Parent;
+
+  RulesTreeView.Selected := Node;
+End;
+
 Procedure TBDSLauncherMainForm.RulesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
 Begin
   AllowCollapse := False;
 End;
 
-Procedure TBDSLauncherMainForm.RulesTreeViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-Var
-  tp: TPoint;
+Procedure TBDSLauncherMainForm.RulesTreeViewDragDrop(Sender, Source: TObject; X, Y: Integer);
 Begin
-  If Button <> mbRight Then
-    Exit;
+  MoveNode(RulesTreeView.Selected, RulesTreeView.GetNodeAt(X, Y));
+End;
 
-  RulesTreeView.Selected := RulesTreeView.GetNodeAt(X, Y);
+Procedure TBDSLauncherMainForm.RulesTreeViewDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; Var Accept: Boolean);
+Var
+  destnode: TTreeNode;
+begin
+  destnode := RulesTreeView.GetNodeAt(X, Y);
 
-  tp.X := X;
-  tp.Y := Y;
+  While Assigned(destnode) And Assigned(destnode.Parent) Do
+   destnode := destnode.Parent;
 
-  tp := Self.ClientToScreen(tp);
-  PopUpMenu.Popup(tp.X, tp.Y);
+  Accept := Assigned(destnode) And (RulesTreeView.Selected <> destnode);
 End;
 
 Procedure TBDSLauncherMainForm.Savesettings1Click(Sender: TObject);
 Begin
   If Settings.IsLoaded Then
+  Begin
     Settings.Save;
+
+    MessageDlg('Settings saved successfully.', mtInformation, [mbOK], 0);
+  End;
 End;
 
 Function TBDSLauncherMainForm.SelectedRule: TRule;

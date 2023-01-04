@@ -43,6 +43,8 @@ Type
   public
     Constructor Create; Override;
     Destructor Destroy; Override;
+    Procedure RenameRule(Const inRuleName, inNewName: String);
+    Function ContainsRule(Const inRuleName: String): Boolean;
     Function LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
     Property DelphiVersions: TAEDelphiVersions Read _dvers;
     Property Rule[Const inRuleName: String]: TRule Read GetRule Write SetRule;
@@ -184,6 +186,11 @@ Begin
   Result := _rules[inItem1].Order - _rules[inItem2].Order;
 End;
 
+Function TRuleEngine.ContainsRule(Const inRuleName: String): Boolean;
+Begin
+  Result := _rules.ContainsKey(inRuleName);
+End;
+
 Constructor TRuleEngine.Create;
 Begin
   inherited;
@@ -297,6 +304,11 @@ Begin
     lastmatchedversion.NewIDEInstance.OpenFile(inFileName);
     Result := True;
   End;
+End;
+
+Procedure TRuleEngine.RenameRule(Const inRuleName, inNewName: String);
+Begin
+  _rules.Add(inNewName, _rules.ExtractPair(inRuleName).Value);
 End;
 
 Function TRuleEngine.GetAsJSON: TJSONObject;

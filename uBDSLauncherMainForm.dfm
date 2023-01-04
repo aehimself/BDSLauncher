@@ -31,6 +31,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Height = 392
     Align = alLeft
     BorderStyle = bsNone
+    DragMode = dmAutomatic
     HideSelection = False
     Indent = 19
     ReadOnly = True
@@ -38,9 +39,12 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     ShowLines = False
     ShowRoot = False
     TabOrder = 0
+    OnAdvancedCustomDrawItem = RulesTreeViewAdvancedCustomDrawItem
     OnChange = RulesTreeViewChange
+    OnChanging = RulesTreeViewChanging
     OnCollapsing = RulesTreeViewCollapsing
-    OnMouseDown = RulesTreeViewMouseDown
+    OnDragDrop = RulesTreeViewDragDrop
+    OnDragOver = RulesTreeViewDragOver
   end
   object ScrollBox1: TScrollBox
     Left = 255
@@ -145,36 +149,10 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       OnChange = InstanceParamsEditChange
     end
   end
-  object PopupMenu: TPopupMenu
-    AutoHotkeys = maManual
-    OnPopup = PopupMenuPopup
-    Left = 40
-    Top = 24
-    object Newrule1: TMenuItem
-      Caption = '&New rule...'
-      OnClick = Newrule1Click
-    end
-    object Deleterule1: TMenuItem
-      AutoHotkeys = maManual
-      Caption = '&Delete rule...'
-      OnClick = Deleterule1Click
-    end
-    object N2: TMenuItem
-      Caption = '-'
-    end
-    object Moveup1: TMenuItem
-      Caption = 'Move up'
-      OnClick = MoveRuleClick
-    end
-    object Movedown1: TMenuItem
-      Caption = 'Move down'
-      OnClick = MoveRuleClick
-    end
-  end
   object MainMenu: TMainMenu
     AutoHotkeys = maManual
-    Left = 40
-    Top = 80
+    Left = 48
+    Top = 8
     object File1: TMenuItem
       Caption = '&File'
       object Enablelogging1: TMenuItem
@@ -183,6 +161,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       end
       object Savesettings1: TMenuItem
         Caption = '&Save settings'
+        ShortCut = 16467
         OnClick = Savesettings1Click
       end
       object N1: TMenuItem
@@ -190,18 +169,39 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
       end
       object Exit1: TMenuItem
         Caption = 'E&xit'
+        ShortCut = 32883
         OnClick = Exit1Click
       end
     end
     object Rules1: TMenuItem
       Caption = '&Rules'
-      object Newrule2: TMenuItem
+      object Newrule1: TMenuItem
         Caption = '&New rule...'
+        ShortCut = 16462
         OnClick = Newrule1Click
       end
-      object Deleterule2: TMenuItem
+      object Deleterule1: TMenuItem
         Caption = '&Delete rule...'
+        ShortCut = 16452
         OnClick = Deleterule1Click
+      end
+      object Renamerule1: TMenuItem
+        Caption = 'Rename rule...'
+        ShortCut = 16466
+        OnClick = Renamerule1Click
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object Moveup1: TMenuItem
+        Caption = 'Move &up'
+        ShortCut = 16469
+        OnClick = MoveRuleClick
+      end
+      object Movedown1: TMenuItem
+        Caption = 'Move d&own'
+        ShortCut = 16463
+        OnClick = MoveRuleClick
       end
     end
     object Fileassociations1: TMenuItem

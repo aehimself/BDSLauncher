@@ -209,7 +209,7 @@ End;
 
 Function TRuleEngine.LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
 Var
-  rulename, mask: String;
+  rulename, mask, lastmatchedparams: String;
   rule: TRule;
   ver, lastmatchedversion: TAEIDEVersion;
   inst: TAEIDEInstance;
@@ -220,6 +220,7 @@ Begin
   _dvers.RefreshInstalledVersions;
 
   lastmatchedversion := nil;
+  lastmatchedparams := '';
 
   For rulename In Self.Rules Do
   Begin
@@ -258,8 +259,15 @@ Begin
     Begin
       BDSLogger.Log('Starting a new instance of ' + ver.Name + ' as defined in the rule...');
 
-      ver.NewInstanceParams := rule.NewInstanceParams;
-      ver.NewIDEInstance.OpenFile(inFileName);
+      If rule.NewInstanceParams.IsEmpty Then
+        inst := ver.NewIDEInstance('"' + inFileName + '"')
+      Else
+      Begin
+        inst := ver.NewIDEInstance(rule.NewInstanceParams);
+        inst.OpenFile(inFileName);
+      End;
+
+      BDSLogger.Log(inst.Name + ' started successfully.');
 
       Result := True;
       Exit;
@@ -271,7 +279,7 @@ Begin
       For inst In ver.Instances Do
         If inst.IDECaption.ToLower.Contains(rule.InstanceCaptionContains.ToLower) Then
         Begin
-          BDSLogger.Log(ver.Name + ' - ' + inst.IDECaption + ' (PID: ' + inst.PID.ToString + ') selected.');
+          BDSLogger.Log(inst.Name + ' selected.');
 
           inst.OpenFile(inFileName);
 
@@ -283,7 +291,7 @@ Begin
     Begin
       inst := ver.Instances[0];
 
-      BDSLogger.Log(ver.Name + ' - ' + inst.IDECaption + ' (PID: ' + inst.PID.ToString + ') selected.');
+      BDSLogger.Log(inst.Name + ' selected.');
 
       inst.OpenFile(inFileName);
 
@@ -294,14 +302,23 @@ Begin
     BDSLogger.Log('No suitable ' + ver.Name + ' instances found for this rule. If no other rule launches this file, a new instance of it will be launched.');
 
     lastmatchedversion := ver;
-    lastmatchedversion.NewInstanceParams := rule.NewInstanceParams;
+    lastmatchedparams := rule.NewInstanceParams;
   End;
 
   If Assigned(lastmatchedversion) Then
   Begin
     BDSLogger.Log('No rules found a suitable intance to start this file. Launching a new instance of ' + lastmatchedversion.name + '...');
 
-    lastmatchedversion.NewIDEInstance.OpenFile(inFileName);
+    If lastmatchedparams.IsEmpty Then
+      inst := lastmatchedversion.NewIDEInstance('"' + inFileName + '"')
+    Else
+    Begin
+      inst := lastmatchedversion.NewIDEInstance(lastmatchedparams);
+      inst.OpenFile(inFileName);
+    End;
+
+    BDSLogger.Log(inst.Name + ' started successfully.');
+
     Result := True;
   End;
 End;

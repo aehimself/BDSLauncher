@@ -396,16 +396,21 @@ Begin
   BDSLogger.Log('Running Delphi instances:');
   For ver In RuleEngine.DelphiVersions.InstalledVersions Do
     For inst In ver.Instances Do
-      BDSLogger.Log(ver.Name + ', ' + inst.IDECaption);
+      BDSLogger.Log(inst.Name);
 
   // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.
   determinedversion := DetectDelphiVersion(inFileName);
 
   BDSLogger.Log('Determined Delphi version: ' + determinedversion);
 
-  // If any rules matches the file and launching is successful, no form is going to be needed either
-  If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
-    Exit;
+  If GetKeyState(VK_SHIFT) >= 0 Then
+  Begin
+    // If any rules matches the file and launching is successful, no form is going to be needed either
+    If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
+      Exit;
+  End
+  Else
+    BDSLogger.Log('Shift was down when starting the file, rule execution was skipped.');
 
   // If there is only one installed version and it has no running instances, don't run any rules or ask how to open it,
   // just start a new instance
@@ -413,8 +418,9 @@ Begin
   Begin
     BDSLogger.Log('No rule applied to the input file, but there''s only one installation and no instances. Starting one...');
 
-    RuleEngine.DelphiVersions.InstalledVersions[0].NewInstanceParams := inFileName;
-    RuleEngine.DelphiVersions.InstalledVersions[0].NewIDEInstance;
+    inst := RuleEngine.DelphiVersions.InstalledVersions[0].NewIDEInstance('"' + inFileName + '"');
+
+    BDSLogger.Log(inst.Name + ' started successfully.');
 
     Exit;
   End;
@@ -438,7 +444,7 @@ Begin
 
     If Assigned(lff.SelectedInstance) Then
     Begin
-      BDSLogger.Log(lff.SelectedVersion.Name + ', ' + lff.SelectedInstance.IDECaption + ' was selected to start the file in.');
+      BDSLogger.Log(lff.SelectedInstance.Name + ' was selected to start the file in.');
 
       lff.SelectedInstance.OpenFile(inFileName)
     End
@@ -446,8 +452,9 @@ Begin
     Begin
       BDSLogger.Log('A new instance of ' + lff.SelectedVersion.Name + ' was selected to start the file in.');
 
-      lff.SelectedVersion.NewInstanceParams := inFileName;
-      lff.SelectedVersion.NewIDEInstance;
+      inst := lff.SelectedVersion.NewIDEInstance('"' + inFileName + '"');
+
+      BDSLogger.Log(inst.Name + ' started successfully.');
     End;
   Finally
     lff.Free;

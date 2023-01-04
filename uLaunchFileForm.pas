@@ -23,13 +23,13 @@ Type
     Procedure FormCreate(Sender: TObject);
     Procedure DelphiInstanceComboBoxChange(Sender: TObject);
     Procedure FormResize(Sender: TObject);
+    Procedure FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
   strict private
     _selectedinstance: TAEIDEInstance;
     _selectedversion: TAEIDEVersion;
     Procedure RefreshInstances;
     Procedure RefreshVersions;
     Procedure WMNCHitTest(Var inMessage: TWMNCHitTest); Message WM_NCHITTEST;
-    Function InstanceCaption(Const inIDEInstance: TAEIDEInstance): String;
   public
     Procedure DelphiVersionDetected(Const inDelphiVersion: String);
     Property SelectedInstance: TAEIDEInstance Read _selectedinstance;
@@ -78,14 +78,19 @@ Begin
   Self.RefreshVersions;
 End;
 
+Procedure TLaunchFileForm.FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
+Begin
+  If Key = VK_ESCAPE Then
+  Begin
+    Key := 0;
+
+    Self.ModalResult := mrCancel;
+  End;
+End;
+
 Procedure TLaunchFileForm.FormResize(Sender: TObject);
 Begin
   Settings.SelectorWidth := Self.Width;
-End;
-
-Function TLaunchFileForm.InstanceCaption(Const inIDEInstance: TAEIDEInstance): String;
-Begin
-  Result := inIDEInstance.IDECaption + ' (PID: ' + inIDEInstance.PID.ToString + ')';
 End;
 
 Procedure TLaunchFileForm.RefreshInstances;
@@ -120,7 +125,7 @@ Begin
 
     For inst In (DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion).Instances Do
     Begin
-      npos := DelphiInstanceComboBox.Items.AddObject(InstanceCaption(inst), inst);
+      npos := DelphiInstanceComboBox.Items.AddObject(inst.Name, inst);
 
       If inst.PID = selpid Then
         DelphiInstanceComboBox.ItemIndex := npos;

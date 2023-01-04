@@ -14,6 +14,7 @@ object LaunchFileForm: TLaunchFileForm
   Font.Style = []
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   OnResize = FormResize
   DesignSize = (
     313
@@ -22,7 +23,7 @@ object LaunchFileForm: TLaunchFileForm
   object DelphiVersionLabel: TLabel
     Left = 16
     Top = 8
-    Width = 220
+    Width = 217
     Height = 15
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Select Delphi version to open the file with:'
@@ -30,7 +31,7 @@ object LaunchFileForm: TLaunchFileForm
   object DelphiInstanceLabel: TLabel
     Left = 16
     Top = 67
-    Width = 209
+    Width = 206
     Height = 15
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Select the instance to open the file with:'

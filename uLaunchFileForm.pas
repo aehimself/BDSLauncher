@@ -103,7 +103,7 @@ Begin
 
   DelphiInstanceComboBox.Items.BeginUpdate;
   Try
-    If DelphiInstanceComboBox.ItemIndex = -1 Then
+    If (DelphiInstanceComboBox.ItemIndex = -1) Or Not Assigned(DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex]) Then
       selpid := 0
     Else
       selpid := (DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex] As TAEIDEInstance).PID;

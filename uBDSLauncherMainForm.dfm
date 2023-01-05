@@ -2,8 +2,8 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   Left = 0
   Top = 0
   Caption = 'AE BDSLauncher'
-  ClientHeight = 392
-  ClientWidth = 625
+  ClientHeight = 391
+  ClientWidth = 621
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -21,14 +21,14 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Left = 250
     Top = 0
     Width = 5
-    Height = 392
+    Height = 391
     OnMoved = SplitterMoved
   end
   object RulesTreeView: TTreeView
     Left = 0
     Top = 0
     Width = 250
-    Height = 392
+    Height = 391
     Align = alLeft
     BorderStyle = bsNone
     DragMode = dmAutomatic
@@ -46,19 +46,19 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     OnDragDrop = RulesTreeViewDragDrop
     OnDragOver = RulesTreeViewDragOver
   end
-  object ScrollBox1: TScrollBox
+  object ScrollBox: TScrollBox
     Left = 255
     Top = 0
-    Width = 370
-    Height = 392
+    Width = 366
+    Height = 391
     Align = alClient
     BorderStyle = bsNone
     Color = clWindow
     ParentColor = False
     TabOrder = 1
     DesignSize = (
-      370
-      392)
+      366
+      391)
     object FileMaskLabel: TLabel
       Left = 8
       Top = 16
@@ -90,7 +90,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object FileMasksMemo: TMemo
       Left = 8
       Top = 37
-      Width = 356
+      Width = 352
       Height = 100
       Anchors = [akLeft, akTop, akRight]
       ScrollBars = ssBoth
@@ -101,7 +101,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object DelphiVersionComboBox: TComboBox
       Left = 8
       Top = 181
-      Width = 356
+      Width = 352
       Height = 22
       Style = csOwnerDrawFixed
       Anchors = [akLeft, akTop, akRight]
@@ -111,7 +111,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object AlwaysNewInstanceRadioButton: TRadioButton
       Left = 8
       Top = 232
-      Width = 356
+      Width = 352
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Always start in a new instance'
@@ -121,7 +121,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object SelectedInstanceRadioButton: TRadioButton
       Left = 8
       Top = 255
-      Width = 356
+      Width = 352
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Use an existing instance'
@@ -133,7 +133,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object InstanceContainsEdit: TEdit
       Left = 28
       Top = 299
-      Width = 336
+      Width = 332
       Height = 23
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 4
@@ -142,7 +142,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object InstanceParamsEdit: TEdit
       Left = 8
       Top = 363
-      Width = 356
+      Width = 352
       Height = 23
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 5
@@ -165,6 +165,14 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
         OnClick = Savesettings1Click
       end
       object N1: TMenuItem
+        Caption = '-'
+      end
+      object OpenDelphisourcefile1: TMenuItem
+        Caption = 'Open Delphi source file...'
+        ShortCut = 16463
+        OnClick = OpenDelphisourcefile1Click
+      end
+      object N3: TMenuItem
         Caption = '-'
       end
       object Exit1: TMenuItem
@@ -199,8 +207,8 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
         OnClick = MoveRuleClick
       end
       object Movedown1: TMenuItem
-        Caption = 'Move d&own'
-        ShortCut = 16463
+        Caption = 'Move do&wn'
+        ShortCut = 16471
         OnClick = MoveRuleClick
       end
     end

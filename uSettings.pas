@@ -45,7 +45,6 @@ Type
     Destructor Destroy; Override;
     Procedure RenameRule(Const inRuleName, inNewName: String);
     Function ContainsRule(Const inRuleName: String): Boolean;
-    Function LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
     Property DelphiVersions: TAEDelphiVersions Read _dvers;
     Property Rule[Const inRuleName: String]: TRule Read GetRule Write SetRule;
     Property Rules: TArray<String> Read GetRules;
@@ -74,7 +73,7 @@ Function Settings: TSettings;
 
 Implementation
 
-Uses System.SysUtils, System.Masks, System.Generics.Defaults, uBDSLogger;
+Uses System.SysUtils, System.Generics.Defaults;
 
 Const
   TXT_ALWAYSNEWINSTANCE = 'alwaysnewinstance';
@@ -205,122 +204,6 @@ Begin
   FreeAndNil(_rules);
 
   inherited;
-End;
-
-Function TRuleEngine.LaunchByRules(Const inFileName, inAutoDetectedVersion: String): Boolean;
-Var
-  rulename, mask, lastmatchedparams: String;
-  rule: TRule;
-  ver, lastmatchedversion: TAEIDEVersion;
-  inst: TAEIDEInstance;
-  anymatch: Boolean;
-Begin
-  Result := False;
-
-  _dvers.RefreshInstalledVersions;
-
-  lastmatchedversion := nil;
-  lastmatchedparams := '';
-
-  For rulename In Self.Rules Do
-  Begin
-    rule := Self.Rule[rulename];
-
-    BDSLogger.Log('Checking with rule #' + rule.Order.ToString + ': ' + rulename);
-
-    // Rule was not set up for this file pattern
-    anymatch := False;
-    For mask In rule.FileMasks.Split([sLineBreak]) Do
-      anymatch := anymatch Or MatchesMask(inFileName, mask);
-
-    If Not anymatch Then
-    Begin
-      BDSLogger.Log('None of the file masks in the rule matched the input file!');
-
-      Continue;
-    End;
-
-    If Not rule.DelphiVersion.IsEmpty Then
-      ver := _dvers.VersionByName(rule.DelphiVersion) // Rule explicitly specified a Delphi version
-    Else If Not inAutoDetectedVersion.IsEmpty Then
-      ver := _dvers.VersionByName(inAutoDetectedVersion) // Auto detection was enabled, version could be detected
-    Else
-      ver := _dvers.LatestVersion; // Auto detection was specified by the rule, but version was not detected. In this case, use the latest
-
-    // Delphi version requested by this rule is not installed (?)
-    If Not Assigned(ver) Then
-    Begin
-      BDSLogger.Log('No suitable Delphi versions requested by the rule were found!');
-
-      Continue;
-    End;
-
-    If rule.AlwaysNewInstance Then
-    Begin
-      BDSLogger.Log('Starting a new instance of ' + ver.Name + ' as defined in the rule...');
-
-      If rule.NewInstanceParams.IsEmpty Then
-        inst := ver.NewIDEInstance('"' + inFileName + '"')
-      Else
-      Begin
-        inst := ver.NewIDEInstance(rule.NewInstanceParams);
-        inst.OpenFile(inFileName);
-      End;
-
-      BDSLogger.Log(inst.Name + ' started successfully.');
-
-      Result := True;
-      Exit;
-    End
-    Else If Not rule.InstanceCaptionContains.IsEmpty Then
-    Begin
-      BDSLogger.Log('Searching for an instance of ' + ver.Name + ' which has ' + rule.InstanceCaptionContains + ' in it''s caption...');
-
-      For inst In ver.Instances Do
-        If inst.IDECaption.ToLower.Contains(rule.InstanceCaptionContains.ToLower) Then
-        Begin
-          BDSLogger.Log(inst.Name + ' selected.');
-
-          inst.OpenFile(inFileName);
-
-          Result := True;
-          Exit;
-        End;
-    End
-    Else If Length(ver.Instances) > 0 Then
-    Begin
-      inst := ver.Instances[0];
-
-      BDSLogger.Log(inst.Name + ' selected.');
-
-      inst.OpenFile(inFileName);
-
-      Result := True;
-      Exit;
-    End;
-
-    BDSLogger.Log('No suitable ' + ver.Name + ' instances found for this rule. If no other rule launches this file, a new instance of it will be launched.');
-
-    lastmatchedversion := ver;
-    lastmatchedparams := rule.NewInstanceParams;
-  End;
-
-  If Assigned(lastmatchedversion) Then
-  Begin
-    BDSLogger.Log('No rules found a suitable intance to start this file. Launching a new instance of ' + lastmatchedversion.name + '...');
-
-    If lastmatchedparams.IsEmpty Then
-      inst := lastmatchedversion.NewIDEInstance('"' + inFileName + '"')
-    Else
-    Begin
-      inst := lastmatchedversion.NewIDEInstance(lastmatchedparams);
-      inst.OpenFile(inFileName);
-    End;
-
-    BDSLogger.Log(inst.Name + ' started successfully.');
-
-    Result := True;
-  End;
 End;
 
 Procedure TRuleEngine.RenameRule(Const inRuleName, inNewName: String);

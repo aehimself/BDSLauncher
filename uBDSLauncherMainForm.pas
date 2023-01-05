@@ -10,7 +10,8 @@ Unit uBDSLauncherMainForm;
 
 Interface
 
-Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uSettings, WinApi.Windows;
+Uses System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Menus, uSettings, WinApi.Windows,
+     AE.IDE.Versions;
 
 Type
   TBDSLauncherMainForm = Class(TForm)
@@ -28,7 +29,7 @@ Type
     akeover1: TMenuItem;
     Giveback1: TMenuItem;
     Enablelogging1: TMenuItem;
-    ScrollBox1: TScrollBox;
+    ScrollBox: TScrollBox;
     FileMaskLabel: TLabel;
     FileMasksMemo: TMemo;
     DelphiVersionLabel: TLabel;
@@ -43,6 +44,8 @@ Type
     Moveup1: TMenuItem;
     Movedown1: TMenuItem;
     Renamerule1: TMenuItem;
+    OpenDelphisourcefile1: TMenuItem;
+    N3: TMenuItem;
     Procedure FormCreate(Sender: TObject);
     Procedure Deleterule1Click(Sender: TObject);
     Procedure Newrule1Click(Sender: TObject);
@@ -67,13 +70,17 @@ Type
     Procedure RulesTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage; Var PaintImages, DefaultDraw: Boolean);
     Procedure Renamerule1Click(Sender: TObject);
     Procedure RulesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
+    Procedure OpenDelphisourcefile1Click(Sender: TObject);
   strict private
     _dontsave: Boolean;
     _loading: Boolean;
+    Procedure OpenInInstance(Const inFileName: String; Const inInstance: TAEIDEInstance);
     Procedure OpenFile(Const inFileName: String);
+    Procedure OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String);
     Procedure RefreshRules;
     Procedure MoveNode(inSourceNode, inDestinationNode: TTreeNode);
     Procedure UpdateSelectedTreeNode;
+    Function OpenWithRules(Const inFileName, inDetectedVersion: String): Boolean;
     Function SelectedRule: TRule;
   End;
 
@@ -82,8 +89,8 @@ Var
 
 Implementation
 
-Uses WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, AE.IDE.Versions, System.UITypes, uFileAssociations,
-     uDetectDelphiVersionOfProject, uBDSLogger;
+Uses WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, System.UITypes, uFileAssociations,
+     uDetectDelphiVersionOfProject, uBDSLogger, System.Masks;
 
 {$R *.dfm}
 
@@ -381,6 +388,14 @@ Begin
   RulesTreeViewChange(RulesTreeView, RulesTreeView.Selected);
 End;
 
+Procedure TBDSLauncherMainForm.OpenDelphisourcefile1Click(Sender: TObject);
+Var
+  fname: String;
+Begin
+  If PromptForFileName(fname, 'Delphi source files|*.pas;*.dproj;*.dpk;*.dfm;*.groupproj') Then
+    Self.OpenFile(fname);
+End;
+
 Procedure TBDSLauncherMainForm.OpenFile(Const inFileName: String);
 Var
   lff: TLaunchFileForm;
@@ -393,20 +408,25 @@ Begin
   If Not FileExists(inFileName) Then
     Raise EArgumentException.Create(inFileName + ' does not exist!');
 
-  BDSLogger.Log('Running Delphi instances:');
-  For ver In RuleEngine.DelphiVersions.InstalledVersions Do
-    For inst In ver.Instances Do
-      BDSLogger.Log(inst.Name);
+  If Length(RuleEngine.DelphiVersions.InstalledVersions) > 0 Then
+  Begin
+    BDSLogger.Log('Running Delphi instances:');
+
+    For ver In RuleEngine.DelphiVersions.InstalledVersions Do
+      For inst In ver.Instances Do
+        BDSLogger.Log(inst.Name);
+  End;
 
   // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.
   determinedversion := DetectDelphiVersion(inFileName);
 
-  BDSLogger.Log('Determined Delphi version: ' + determinedversion);
+  If Not determinedversion.IsEmpty Then
+    BDSLogger.Log('Determined Delphi version: ' + determinedversion);
 
   If GetKeyState(VK_SHIFT) >= 0 Then
   Begin
     // If any rules matches the file and launching is successful, no form is going to be needed either
-    If RuleEngine.LaunchByRules(inFileName, determinedversion) Then
+    If Self.OpenWithRules(inFileName, determinedversion) Then
       Exit;
   End
   Else
@@ -458,6 +478,106 @@ Begin
     End;
   Finally
     lff.Free;
+  End;
+End;
+
+Procedure TBDSLauncherMainForm.OpenInInstance(Const inFileName: String; Const inInstance: TAEIDEInstance);
+Begin
+  inInstance.OpenFile(inFileName);
+
+  BDSLogger.Log(inFileName + ' was started in an existing ' + inInstance.Name + ' instance.');
+End;
+
+Procedure TBDSLauncherMainForm.OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String);
+Var
+  inst: TAEIDEInstance;
+Begin
+  If inParams.IsEmpty Then
+    inst := inIDEVersion.NewIDEInstance('"' + inFileName + '"')
+  Else
+  Begin
+    inst := inIDEVersion.NewIDEInstance(inParams);
+    inst.OpenFile(inFileName);
+  End;
+
+  BDSLogger.Log(inFileName + ' was started in a new ' + inst.Name + ' instance.');
+End;
+
+Function TBDSLauncherMainForm.OpenWithRules(Const inFileName, inDetectedVersion: String): Boolean;
+Var
+  rulename, mask: String;
+  rule: TRule;
+  ver: TAEIDEVersion;
+  inst: TAEIDEInstance;
+  anymatch: Boolean;
+Begin
+  Result := False;
+
+  For rulename In RuleEngine.Rules Do
+  Begin
+    rule := RuleEngine.Rule[rulename];
+
+    BDSLogger.Log('Checking with rule #' + rule.Order.ToString + ': ' + rulename);
+
+    // Rule was not set up for this file pattern
+    anymatch := False;
+    For mask In rule.FileMasks.Split([sLineBreak]) Do
+      anymatch := anymatch Or MatchesMask(inFileName, mask);
+
+    If Not anymatch Then
+    Begin
+      BDSLogger.Log('None of the file masks in the rule matched the input file!');
+
+      Continue;
+    End;
+
+    If Not rule.DelphiVersion.IsEmpty Then
+      ver := RuleEngine.DelphiVersions.VersionByName(rule.DelphiVersion) // Rule explicitly specified a Delphi version
+    Else If Not inDetectedVersion.IsEmpty Then
+      ver := RuleEngine.DelphiVersions.VersionByName(inDetectedVersion) // Auto detection was enabled, version could be detected
+    Else
+      ver := RuleEngine.DelphiVersions.LatestVersion; // Auto detection was specified by the rule, but version was not detected. In this case, use the latest
+
+    // Delphi version requested by this rule is not installed (?)
+    If Not Assigned(ver) Then
+    Begin
+      BDSLogger.Log('No suitable Delphi versions requested by the rule were found!');
+
+      Continue;
+    End;
+
+    If rule.AlwaysNewInstance Then
+    Begin
+      Self.OpenInNewInstance(inFileName, ver, rule.NewInstanceParams);
+
+      Result := True;
+      Exit;
+    End
+    Else If Not rule.InstanceCaptionContains.IsEmpty Then
+    Begin
+      BDSLogger.Log('Searching for an instance of ' + ver.Name + ' which has ' + rule.InstanceCaptionContains + ' in it''s caption...');
+
+      For inst In ver.Instances Do
+        If inst.IDECaption.ToLower.Contains(rule.InstanceCaptionContains.ToLower) Then
+        Begin
+          Self.OpenInInstance(inFileName, inst);
+
+          Result := True;
+          Exit;
+        End;
+    End
+    Else If Length(ver.Instances) > 0 Then
+    Begin
+      Self.OpenInInstance(inFileName, ver.Instances[0]);
+
+      Result := True;
+      Exit;
+    End;
+
+    Self.OpenInNewInstance(inFilename, ver, rule.NewInstanceParams);
+
+    Result := true;
+    Exit;
   End;
 End;
 

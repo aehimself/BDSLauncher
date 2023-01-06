@@ -76,7 +76,7 @@ Type
     _loading: Boolean;
     Procedure OpenInInstance(Const inFileName: String; Const inInstance: TAEIDEInstance);
     Procedure OpenFile(Const inFileName: String);
-    Procedure OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String);
+    Procedure OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String = '');
     Procedure RefreshRules;
     Procedure MoveNode(inSourceNode, inDestinationNode: TTreeNode);
     Procedure UpdateSelectedTreeNode;
@@ -154,9 +154,12 @@ Begin
 
   _loading := True;
   Try
-    Self.Height := Settings.MainWindowHeight;
-    Self.Width := Settings.MainWindowWidth;
-    RulesTreeView.Width := Settings.RuleListWidth;
+    If Settings.WindowSize[Self.ClassName].Height <> 0 Then
+      Self.Height := Settings.WindowSize[Self.ClassName].Height;
+    If Settings.WindowSize[Self.ClassName].Width <> 0 Then
+      Self.Width := Settings.WindowSize[Self.ClassName].Width;
+    If Settings.RuleListWidth <> 0 Then
+      RulesTreeView.Width := Settings.RuleListWidth;
   Finally
     _loading := False;
   End;
@@ -219,8 +222,15 @@ Begin
   If _loading Then
     Exit;
 
-  Settings.MainWindowHeight := Self.Height;
-  Settings.MainWindowWidth := Self.Width;
+  If Self.Height <> 448 Then
+    Settings.WindowSize[Self.ClassName].Height := Self.Height
+  Else
+    Settings.WindowSize[Self.ClassName].Height := 0;
+
+  If Self.Width <> 629 Then
+    Settings.WindowSize[Self.ClassName].Width := Self.Width
+  Else
+    Settings.WindowSize[Self.ClassName].Width := 0;
 End;
 
 Procedure TBDSLauncherMainForm.Giveback1Click(Sender: TObject);
@@ -393,7 +403,11 @@ Var
   fname: String;
 Begin
   If PromptForFileName(fname, 'Delphi source files|*.pas;*.dproj;*.dpk;*.dfm;*.groupproj') Then
+  Begin
+    RuleEngine.DelphiVersions.RefreshInstalledVersions;
+
     Self.OpenFile(fname);
+  End;
 End;
 
 Procedure TBDSLauncherMainForm.OpenFile(Const inFileName: String);
@@ -436,11 +450,9 @@ Begin
   // just start a new instance
   If ((Length(RuleEngine.DelphiVersions.InstalledVersions) = 1) And (Length(RuleEngine.DelphiVersions.InstalledVersions[0].Instances) = 0)) Then
   Begin
-    BDSLogger.Log('No rule applied to the input file, but there''s only one installation and no instances. Starting one...');
+    BDSLogger.Log('Only one installed version and no instances were found.');
 
-    inst := RuleEngine.DelphiVersions.InstalledVersions[0].NewIDEInstance('"' + inFileName + '"');
-
-    BDSLogger.Log(inst.Name + ' started successfully.');
+    Self.OpenInNewInstance(inFileName, RuleEngine.DelphiVersions.InstalledVersions[0]);
 
     Exit;
   End;
@@ -462,20 +474,19 @@ Begin
     If lff.ShowModal <> mrOk Then
       Exit;
 
-    If Assigned(lff.SelectedInstance) Then
-    Begin
-      BDSLogger.Log(lff.SelectedInstance.Name + ' was selected to start the file in.');
+    If lff.SelectedObject <> nil Then
+      If lff.SelectedObject is TAEIDEInstance Then
+      Begin
+        BDSLogger.Log((lff.SelectedObject As TAEIDEInstance).Name + ' was selected.');
 
-      lff.SelectedInstance.OpenFile(inFileName)
-    End
-    Else If Assigned(lff.SelectedVersion) Then
-    Begin
-      BDSLogger.Log('A new instance of ' + lff.SelectedVersion.Name + ' was selected to start the file in.');
+        Self.OpenInInstance(inFileName, lff.SelectedObject As TAEIDEInstance);
+      End
+      Else If lff.SelectedObject Is TAEIDEVersion Then
+      Begin
+        BDSLogger.Log('A new instance of ' + (lff.SelectedObject As TAEIDEVersion).Name + ' was selected.');
 
-      inst := lff.SelectedVersion.NewIDEInstance('"' + inFileName + '"');
-
-      BDSLogger.Log(inst.Name + ' started successfully.');
-    End;
+        Self.OpenInNewInstance(inFilename, lff.SelectedObject As TAEIDEVersion);
+      End;
   Finally
     lff.Free;
   End;
@@ -485,10 +496,10 @@ Procedure TBDSLauncherMainForm.OpenInInstance(Const inFileName: String; Const in
 Begin
   inInstance.OpenFile(inFileName);
 
-  BDSLogger.Log(inFileName + ' was started in an existing ' + inInstance.Name + ' instance.');
+  BDSLogger.Log(ExtractFileName(inFileName) + ' was started in an existing ' + inInstance.Name + ' instance.');
 End;
 
-Procedure TBDSLauncherMainForm.OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String);
+Procedure TBDSLauncherMainForm.OpenInNewInstance(Const inFileName: String; Const inIDEVersion: TAEIDEVersion; Const inParams: String = '');
 Var
   inst: TAEIDEInstance;
 Begin
@@ -500,7 +511,7 @@ Begin
     inst.OpenFile(inFileName);
   End;
 
-  BDSLogger.Log(inFileName + ' was started in a new ' + inst.Name + ' instance.');
+  BDSLogger.Log(ExtractFileName(inFileName) + ' was started in a new ' + inst.Name + ' instance.');
 End;
 
 Function TBDSLauncherMainForm.OpenWithRules(Const inFileName, inDetectedVersion: String): Boolean;
@@ -548,6 +559,8 @@ Begin
 
     If rule.AlwaysNewInstance Then
     Begin
+      BDSLogger.Log('Rule specifies a new instance every time.');
+
       Self.OpenInNewInstance(inFileName, ver, rule.NewInstanceParams);
 
       Result := True;
@@ -568,12 +581,15 @@ Begin
     End
     Else If Length(ver.Instances) > 0 Then
     Begin
+      BDSLogger.Log('Rule specifies file can be launched in any instance');
+
       Self.OpenInInstance(inFileName, ver.Instances[0]);
 
       Result := True;
       Exit;
     End;
 
+    BDSLogger.Log('Rule matched, but no suitable instances were found.');
     Self.OpenInNewInstance(inFilename, ver, rule.NewInstanceParams);
 
     Result := true;
@@ -755,7 +771,10 @@ Begin
   If _loading Then
     Exit;
 
-  Settings.RuleListWidth := RulesTreeView.Width;
+  If RulesTreeView.Width <> 250 Then
+    Settings.RuleListWidth := RulesTreeView.Width
+  Else
+    Settings.RuleListWidth := 0;
 End;
 
 Procedure TBDSLauncherMainForm.UpdateSelectedTreeNode;

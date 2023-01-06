@@ -10,72 +10,74 @@ Unit uLaunchFileForm;
 
 Interface
 
-Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, AE.IDE.Versions, WinApi.Messages;
+Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ComCtrls,
+  Vcl.ExtCtrls;
 
 Type
   TLaunchFileForm = Class(TForm)
-    DelphiVersionComboBox: TComboBox;
-    DelphiVersionLabel: TLabel;
-    DelphiInstanceLabel: TLabel;
-    DelphiInstanceComboBox: TComboBox;
     OpenButton: TButton;
-    Procedure DelphiVersionComboBoxChange(Sender: TObject);
+    InstancesTreeView: TTreeView;
+    Timer1: TTimer;
     Procedure FormCreate(Sender: TObject);
-    Procedure DelphiInstanceComboBoxChange(Sender: TObject);
     Procedure FormResize(Sender: TObject);
     Procedure FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
+    Procedure InstancesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
+    Procedure InstancesTreeViewCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Var DefaultDraw: Boolean);
+    Procedure InstancesTreeViewChange(Sender: TObject; Node: TTreeNode);
+    Procedure InstancesTreeViewDblClick(Sender: TObject);
+    Procedure RefreshDisplay(Sender: TObject);
   strict private
-    _selectedinstance: TAEIDEInstance;
-    _selectedversion: TAEIDEVersion;
-    Procedure RefreshInstances;
-    Procedure RefreshVersions;
-    Procedure WMNCHitTest(Var inMessage: TWMNCHitTest); Message WM_NCHITTEST;
+    _loading: Boolean;
+    _selectedobject: TObject;
   public
     Procedure DelphiVersionDetected(Const inDelphiVersion: String);
-    Property SelectedInstance: TAEIDEInstance Read _selectedinstance;
-    Property SelectedVersion: TAEIDEVersion Read _selectedversion;
+    Property SelectedObject: TObject Read _selectedobject;
   End;
 
 Implementation
 
-Uses System.SysUtils, uSettings, Vcl.Dialogs, System.UITypes, WinApi.Windows;
+Uses System.SysUtils, uSettings, Vcl.Dialogs, System.UITypes, WinApi.Windows, Vcl.Graphics, AE.IDE.Versions;
 
 {$R *.dfm}
 
-Procedure TLaunchFileForm.DelphiInstanceComboBoxChange(Sender: TObject);
-Begin
-  If DelphiInstanceComboBox.ItemIndex > -1 Then
-    _selectedinstance := DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex] As TAEIDEInstance
-  Else
-    _selectedinstance := nil;
-End;
-
-Procedure TLaunchFileForm.DelphiVersionComboBoxChange(Sender: TObject);
-Begin
-  If DelphiVersionComboBox.ItemIndex > -1 Then
-    _selectedversion := DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion
-  Else
-    _selectedversion := nil;
-
-  RefreshInstances;
-End;
-
 Procedure TLaunchFileForm.DelphiVersionDetected(Const inDelphiVersion: String);
+Var
+  a: Integer;
+  found: Boolean;
 Begin
-  If DelphiVersionComboBox.Items.IndexOf(inDelphiVersion) <> -1 Then
-    DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.IndexOf(inDelphiVersion)
-  Else
+  found := false;
+
+  For a := 0 To InstancesTreeView.Items.Count - 1 Do
+    If InstancesTreeView.Items[a].Text = inDelphiversion Then
+    Begin
+      InstancesTreeView.Selected := InstancesTreeView.Items[a];
+      found := True;
+
+      Break;
+    End;
+
+  If Not found Then
     MessageDlg('Selected project was created with ' + inDelphiVersion + ', which is not installed on this PC.', mtWarning, [mbOK], 0);
 End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
 Begin
+  _selectedobject := nil;
+
   If Assigned(Screen.MessageFont) Then
     Self.Font.Assign(Screen.MessageFont);
 
-  Self.Width := Settings.SelectorWidth;
+  _loading := True;
+  Try
+    If Settings.WindowSize[Self.ClassName].Height <> 0 Then
+      Self.Height := Settings.WindowSize[Self.ClassName].Height;
+    If Settings.WindowSize[Self.ClassName].Width <> 0 Then
+      Self.Width := Settings.WindowSize[Self.ClassName].Width;
+  Finally
+    _loading := False;
+  End;
 
-  Self.RefreshVersions;
+  Self.RefreshDisplay(nil);
 End;
 
 Procedure TLaunchFileForm.FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
@@ -90,109 +92,94 @@ End;
 
 Procedure TLaunchFileForm.FormResize(Sender: TObject);
 Begin
-  Settings.SelectorWidth := Self.Width;
+  If _loading Then
+    Exit;
+
+  If Self.Height <> 230 Then
+    Settings.WindowSize[Self.ClassName].Height := Self.Height
+  Else
+    Settings.WindowSize[Self.ClassName].Height := 0;
+
+  If Self.Width <> 495 Then
+    Settings.WindowSize[Self.ClassName].Width := Self.Width
+  Else
+    Settings.WindowSize[Self.ClassName].Width := 0;
 End;
 
-Procedure TLaunchFileForm.RefreshInstances;
+Procedure TLaunchFileForm.InstancesTreeViewChange(Sender: TObject; Node: TTreeNode);
+Begin
+  If Assigned(Node) Then
+    _selectedobject := Node.Data
+  Else
+    _selectedobject := nil;
+
+  OpenButton.Enabled := Assigned(_selectedobject);
+End;
+
+Procedure TLaunchFileForm.InstancesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
+Begin
+  AllowCollapse := False;
+End;
+
+Procedure TLaunchFileForm.InstancesTreeViewCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Var DefaultDraw: Boolean);
+Begin
+  If TObject(Node.Data) Is TAEIDEVersion Then
+    Sender.Canvas.Font.Style := [fsBold];
+End;
+
+Procedure TLaunchFileForm.InstancesTreeViewDblClick(Sender: TObject);
+Begin
+  If Assigned(_selectedobject) Then
+    Self.ModalResult := mrOk;
+End;
+
+Procedure TLaunchFileForm.RefreshDisplay;
 Var
+  ver: TAEIDEVersion;
   inst: TAEIDEInstance;
-  selpid: Cardinal;
-  npos: Integer;
+  vertn, insttn, lastver: TTreeNode;
+  sel: String;
 Begin
-  _selectedinstance := nil;
+  If Assigned(Sender) Then
+    RuleEngine.DelphiVersions.RefreshInstalledVersions;
 
-  DelphiInstanceComboBox.Items.BeginUpdate;
+  lastver := nil;
+
+  If Assigned(InstancesTreeView.Selected) Then
+    sel := InstancesTreeView.Selected.Text
+  Else
+    sel := '';
+
+  InstancesTreeView.Items.BeginUpdate;
   Try
-    If (DelphiInstanceComboBox.ItemIndex = -1) Or Not Assigned(DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex]) Then
-      selpid := 0
-    Else
-      selpid := (DelphiInstanceComboBox.Items.Objects[DelphiInstanceComboBox.ItemIndex] As TAEIDEInstance).PID;
+    InstancesTreeView.Items.Clear;
 
-    DelphiInstanceComboBox.Items.Clear;
-
-    If DelphiVersionComboBox.ItemIndex = -1 Then
+    For ver in RuleEngine.DelphiVersions.InstalledVersions Do
     Begin
-      DelphiInstanceComboBox.Enabled := False;
-      OpenButton.Enabled := False;
+      vertn := InstancesTreeView.Items.AddChildFirst(nil, ver.Name);
+      vertn.Data := ver;
 
-      Exit;
+      If ver.Name = sel Then
+        InstancesTreeView.Selected := vertn;
+
+      lastver := vertn;
+
+      For inst In ver.Instances Do
+      Begin
+        insttn := InstancesTreeView.Items.AddChild(vertn, inst.Name);
+        insttn.Data := inst;
+
+        If inst.Name = sel Then
+          InstancesTreeView.Selected := insttn;
+      End;
+
+      vertn.Expand(False);
     End;
 
-    DelphiInstanceComboBox.Enabled := True;
-    OpenButton.Enabled := True;
-
-    DelphiInstanceComboBox.Items.Add('New instance...');
-
-    For inst In (DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion).Instances Do
-    Begin
-      npos := DelphiInstanceComboBox.Items.AddObject(inst.Name, inst);
-
-      If inst.PID = selpid Then
-        DelphiInstanceComboBox.ItemIndex := npos;
-    End;
-
-    If DelphiInstanceComboBox.ItemIndex = -1 Then
-      DelphiInstanceComboBox.ItemIndex := 0;
-
-    DelphiInstanceComboBoxChange(nil);
+    If sel.IsEmpty Then
+      InstancesTreeView.Selected := lastver;
   Finally
-    DelphiInstanceComboBox.Items.EndUpdate;
-  End;
-End;
-
-Procedure TLaunchFileForm.RefreshVersions;
-Var
-  dver: TAEIDEVersion;
-  sel, npos: Integer;
-Begin
-  _selectedversion := nil;
-  _selectedinstance := nil;
-
-  DelphiVersionComboBox.Items.BeginUpdate;
-  Try
-    If DelphiVersionComboBox.ItemIndex = -1 Then
-      sel := -1
-    Else
-      sel := (DelphiVersionComboBox.Items.Objects[DelphiVersionComboBox.ItemIndex] As TAEIDEVersion).VersionNumber;
-
-    DelphiVersionComboBox.Items.Clear;
-
-    For dver In RuleEngine.DelphiVersions.InstalledVersions Do
-    Begin
-      npos := DelphiVersionComboBox.Items.AddObject(dver.Name, dver);
-
-      If dver.VersionNumber = sel Then
-        DelphiVersionCombobox.ItemIndex := npos
-    End;
-
-    If DelphiVersionComboBox.Items.Count = 0 Then
-    Begin
-      DelphiVersionComboBox.Enabled := False;
-      Exit;
-    End;
-
-    DelphiVersionComboBox.Enabled := True;
-
-    If DelphiVersionComboBox.ItemIndex = -1 Then
-      DelphiVersionComboBox.ItemIndex := DelphiVersionComboBox.Items.Count - 1;
-
-    DelphiVersionComboBoxChange(nil);
-  Finally
-    DelphiVersionComboBox.Items.EndUpdate;
-  End;
-End;
-
-Procedure TLaunchFileForm.WMNCHitTest(Var inMessage: TWMNCHitTest);
-Begin
-  inherited;
-
-  Case inMessage.Result Of
-    HTTOP, HTBOTTOM:
-      inMessage.Result := HTBORDER;
-    HTTOPLEFT, HTBOTTOMLEFT:
-      inMessage.Result := HTLEFT;
-    HTTOPRIGHT, HTBOTTOMRIGHT:
-      inMessage.Result := HTRIGHT;
+    InstancesTreeView.Items.EndUpdate;
   End;
 End;
 

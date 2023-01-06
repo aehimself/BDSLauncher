@@ -3,8 +3,8 @@ object LaunchFileForm: TLaunchFileForm
   Top = 0
   BorderIcons = [biSystemMenu]
   Caption = 'LaunchFileForm'
-  ClientHeight = 163
-  ClientWidth = 313
+  ClientHeight = 192
+  ClientWidth = 483
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -12,59 +12,46 @@ object LaunchFileForm: TLaunchFileForm
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
+  KeyPreview = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
   OnResize = FormResize
-  DesignSize = (
-    313
-    163)
   TextHeight = 15
-  object DelphiVersionLabel: TLabel
-    Left = 16
-    Top = 8
-    Width = 217
-    Height = 15
-    Anchors = [akLeft, akTop, akRight]
-    Caption = 'Select Delphi version to open the file with:'
-  end
-  object DelphiInstanceLabel: TLabel
-    Left = 16
-    Top = 67
-    Width = 206
-    Height = 15
-    Anchors = [akLeft, akTop, akRight]
-    Caption = 'Select the instance to open the file with:'
-  end
-  object DelphiVersionComboBox: TComboBox
-    Left = 16
-    Top = 29
-    Width = 281
-    Height = 23
-    Style = csDropDownList
-    Anchors = [akLeft, akTop, akRight]
-    TabOrder = 0
-    OnChange = DelphiVersionComboBoxChange
-  end
-  object DelphiInstanceComboBox: TComboBox
-    Left = 16
-    Top = 88
-    Width = 281
-    Height = 23
-    Style = csDropDownList
-    Anchors = [akLeft, akTop, akRight]
-    TabOrder = 1
-    OnChange = DelphiInstanceComboBoxChange
-  end
   object OpenButton: TButton
-    Left = 16
-    Top = 128
-    Width = 281
+    Left = 0
+    Top = 167
+    Width = 483
     Height = 25
-    Anchors = [akLeft, akTop, akRight]
+    Align = alBottom
     Caption = 'Open'
     Default = True
     ModalResult = 1
-    TabOrder = 2
+    TabOrder = 1
+  end
+  object InstancesTreeView: TTreeView
+    Left = 0
+    Top = 0
+    Width = 483
+    Height = 167
+    Align = alClient
+    BorderStyle = bsNone
+    HideSelection = False
+    Indent = 19
+    ReadOnly = True
+    RowSelect = True
+    ShowLines = False
+    ShowRoot = False
+    TabOrder = 0
+    OnChange = InstancesTreeViewChange
+    OnCollapsing = InstancesTreeViewCollapsing
+    OnCustomDrawItem = InstancesTreeViewCustomDrawItem
+    OnDblClick = InstancesTreeViewDblClick
+  end
+  object Timer1: TTimer
+    Interval = 10000
+    OnTimer = RefreshDisplay
+    Left = 8
+    Top = 16
   end
 end

@@ -50,22 +50,33 @@ Type
     Property Rules: TArray<String> Read GetRules;
   End;
 
+  TWindowSize = Class(TAEApplicationSetting)
+  strict protected
+    Procedure InternalClear; Override;
+    Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
+    Function GetAsJSON: TJSONObject; Override;
+  public
+    Height: Integer;
+    Width: Integer;
+  End;
+
   TSettings = Class(TAEApplicationSettings)
   strict private
     _ruleengine: TRuleEngine;
+    _windows: TObjectDictionary<String, TWindowSize>;
+    Procedure SetWindowSize(Const inWindowClass: String; Const inWindowSize: TWindowSize);
+    Function GetWindowSize(Const inWindowClass: String): TWindowSize;
   strict protected
     Procedure InternalClear; Override;
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
     Function GetAsJSON: TJSONObject; Override;
   public
     EnableLogging: Boolean;
-    MainWindowHeight: Integer;
-    MainWindowWidth: Integer;
     RuleListWidth: Integer;
-    SelectorWidth: Integer;
     Constructor Create(Const inSettingsFileName: String); Override;
     Destructor Destroy; Override;
     Property RuleEngine: TRuleEngine Read _ruleengine;
+    Property WindowSize[Const inWindowClass: String]: TWindowSize Read GetWindowSize Write SetWindowSize;
   End;
 
 Function RuleEngine: TRuleEngine;
@@ -84,10 +95,10 @@ Const
   TXT_ORDER = 'order';
   TXT_RULES = 'rules';
   TXT_ENABLELOGGING = 'enablelogging';
-  TXT_SELECTORWIDTH = 'selectorwidth';
-  TXT_MAINWINDOWWIDTH = 'mainwindowwidth';
-  TXT_MAINWINDOWHEIGHT = 'mainwindowheight';
   TXT_RULELISTWIDTH = 'rulelistwidth';
+  TXT_HEIGHT = 'height';
+  TXT_WIDTH = 'width';
+  TXT_WINDOWS = 'windows';
 
 Var
   _settings: TSettings;
@@ -262,6 +273,37 @@ Begin
 End;
 
 //
+// TWindowSize
+//
+
+Function TWindowSize.GetAsJSON: TJSONObject;
+Begin
+  Result := inherited;
+
+  If Self.Height <> 0 Then
+    Result.AddPair(TXT_HEIGHT, TJSONNumber.Create(Self.Height));
+
+  if Self.Width <> 0 Then
+    Result.AddPair(TXT_WIDTH, TJSONNumber.Create(Self.Width))
+End;
+
+Procedure TWindowSize.InternalClear;
+Begin
+  inherited;
+
+  Self.Height := 0;
+  Self.Width := 0;
+End;
+
+Procedure TWindowSize.SetAsJSON(Const inJSON: TJSONObject);
+Begin
+  inherited;
+
+  inJSON.TryGetValue<Integer>(TXT_HEIGHT, Self.Height);
+  inJSON.TryGetValue<Integer>(TXT_WIDTH, Self.Width);
+End;
+
+//
 // TSettings
 //
 
@@ -270,16 +312,21 @@ Begin
   inherited;
 
   _ruleengine := TRuleEngine.Create;
+  _windows := TObjectDictionary<String, TWindowSize>.Create([doOwnsValues]);
 End;
 
 Destructor TSettings.Destroy;
 Begin
   FreeAndNil(_ruleengine);
+  FreeAndNil(_windows);
 
   inherited;
 End;
 
 Function TSettings.GetAsJSON: TJSONObject;
+Var
+  winclass: String;
+  winjson, json: TJSONObject;
 Begin
   Result := inherited;
 
@@ -287,14 +334,38 @@ Begin
     Result.AddPair(TXT_ENABLELOGGING, TJSONBool.Create(Self.EnableLogging));
   If Length(_ruleengine.Rules) > 0 Then
     Result.AddPair(TXT_RULES, _ruleengine.AsJSON);
-  If Self.MainWindowHeight <> 450 Then
-    Result.AddPair(TXT_MAINWINDOWHEIGHT, TJSONNumber.Create(Self.MainWindowHeight));
-  If Self.MainWindowWidth <> 637 Then
-    Result.AddPair(TXT_MAINWINDOWWIDTH, TJSONNumber.Create(Self.MainWindowWidth));
-  If Self.RuleListWidth <> 392 Then
+
+  If Self.RuleListWidth <> 0 Then
     Result.AddPair(TXT_RULELISTWIDTH, TJSONNumber.Create(Self.RuleListWidth));
-  If Self.SelectorWidth <> 322 Then
-    Result.AddPair(TXT_SELECTORWIDTH, TJSONNumber.Create(Self.SelectorWidth));
+
+  If _windows.Count > 0 Then
+  Begin
+    winjson := TJSONObject.Create;
+    Try
+      For winclass In _windows.Keys Do
+      Begin
+        json := _windows[winclass].AsJSON;
+
+        If json.Count = 0 Then
+          FreeAndNil(json)
+        Else
+          winjson.AddPair(winclass, json);
+      End;
+    Finally
+      If winjson.Count = 0 Then
+        FreeAndNil(winjson)
+      Else
+        Result.AddPair(TXT_WINDOWS, winjson);
+    End;
+  End;
+End;
+
+Function TSettings.GetWindowSize(Const inWindowClass: String): TWindowSize;
+Begin
+  If Not _windows.ContainsKey(inWindowClass) Then
+    _windows.Add(inWindowClass, TWindowSize.Create);
+
+  Result := _windows[inWindowClass];
 End;
 
 Procedure TSettings.InternalClear;
@@ -303,23 +374,32 @@ Begin
 
   _ruleengine.Clear;
   Self.EnableLogging := False;
-  Self.MainWindowHeight := 450;
-  Self.MainWindowWidth := 637;
-  Self.RuleListWidth := 392;
-  Self.SelectorWidth := 322;
+  Self.RuleListWidth := 0;
+  _windows.Clear;
 End;
 
 Procedure TSettings.SetAsJSON(Const inJSON: TJSONObject);
+Var
+  jp: TJSONPair;
 Begin
   inherited;
 
   inJSON.TryGetValue<Boolean>(TXT_ENABLELOGGING, Self.EnableLogging);
   If inJSON.GetValue(TXT_RULES) <> nil Then
     _ruleengine.AsJSON := inJSON.GetValue<TJSONObject>(TXT_RULES);
-  inJSON.TryGetValue<Integer>(TXT_MAINWINDOWHEIGHT, Self.MainWindowHeight);
-  inJSON.TryGetValue<Integer>(TXT_MAINWINDOWWIDTH, Self.MainWindowWidth);
   inJSON.TryGetValue<Integer>(TXT_RULELISTWIDTH, Self.RuleListWidth);
-  inJSON.TryGetValue<integer>(TXT_SELECTORWIDTH, Self.SelectorWidth);
+
+  If inJSON.GetValue(TXT_WINDOWS) <> nil Then
+    For jp In inJSON.GetValue<TJSONObject>(TXT_WINDOWS) Do
+      _windows.Add(jp.JsonString.Value, TWindowSize.NewFromJSON(jp.JsonValue) As TWindowSize);
+End;
+
+Procedure TSettings.SetWindowSize(Const inWindowClass: String; Const inWindowSize: TWindowSize);
+Begin
+  If Assigned(inWindowSize) Then
+    _windows.AddOrSetValue(inWindowClass, inWindowSize)
+  Else
+    _windows.Remove(inWindowClass);
 End;
 
 Initialization

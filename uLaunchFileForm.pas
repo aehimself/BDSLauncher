@@ -15,12 +15,13 @@ Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ComCtrls,
 
 Type
   TLaunchFileForm = Class(TForm)
-    OpenButton: TButton;
     InstancesTreeView: TTreeView;
     Timer1: TTimer;
+    ButtonsPanel: TPanel;
+    OpenButton: TButton;
+    CancelButton: TButton;
     Procedure FormCreate(Sender: TObject);
     Procedure FormResize(Sender: TObject);
-    Procedure FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
     Procedure InstancesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
     Procedure InstancesTreeViewCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Var DefaultDraw: Boolean);
     Procedure InstancesTreeViewChange(Sender: TObject; Node: TTreeNode);
@@ -78,16 +79,6 @@ Begin
   End;
 
   Self.RefreshDisplay(nil);
-End;
-
-Procedure TLaunchFileForm.FormKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
-Begin
-  If Key = VK_ESCAPE Then
-  Begin
-    Key := 0;
-
-    Self.ModalResult := mrCancel;
-  End;
 End;
 
 Procedure TLaunchFileForm.FormResize(Sender: TObject);

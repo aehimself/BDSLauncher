@@ -15,25 +15,13 @@ object LaunchFileForm: TLaunchFileForm
   KeyPreview = True
   Position = poScreenCenter
   OnCreate = FormCreate
-  OnKeyDown = FormKeyDown
   OnResize = FormResize
   TextHeight = 15
-  object OpenButton: TButton
-    Left = 0
-    Top = 167
-    Width = 483
-    Height = 25
-    Align = alBottom
-    Caption = 'Open'
-    Default = True
-    ModalResult = 1
-    TabOrder = 1
-  end
   object InstancesTreeView: TTreeView
     Left = 0
     Top = 0
     Width = 483
-    Height = 167
+    Height = 155
     Align = alClient
     BorderStyle = bsNone
     HideSelection = False
@@ -47,6 +35,40 @@ object LaunchFileForm: TLaunchFileForm
     OnCollapsing = InstancesTreeViewCollapsing
     OnCustomDrawItem = InstancesTreeViewCustomDrawItem
     OnDblClick = InstancesTreeViewDblClick
+  end
+  object ButtonsPanel: TPanel
+    Left = 0
+    Top = 155
+    Width = 483
+    Height = 37
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 1
+    DesignSize = (
+      483
+      37)
+    object OpenButton: TButton
+      Left = 400
+      Top = 6
+      Width = 75
+      Height = 25
+      Anchors = [akTop, akRight]
+      Caption = 'Open'
+      Default = True
+      ModalResult = 1
+      TabOrder = 0
+    end
+    object CancelButton: TButton
+      Left = 312
+      Top = 6
+      Width = 75
+      Height = 25
+      Anchors = [akTop, akRight]
+      Cancel = True
+      Caption = 'Cancel'
+      ModalResult = 2
+      TabOrder = 1
+    end
   end
   object Timer1: TTimer
     Interval = 10000

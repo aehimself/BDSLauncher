@@ -465,7 +465,7 @@ Begin
   // We ran out of options for the time being. Show the form and ask where to open the file
   lff := TLaunchFileForm.Create(nil);
   Try
-    lff.Caption := inFileName;
+    lff.Initialize(inFileName);
 
     // If Delphi version detection was successful, change the default item in the combobox.
     If Not determinedversion.IsEmpty Then

@@ -10,8 +10,7 @@ Unit uLaunchFileForm;
 
 Interface
 
-Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ComCtrls,
-  Vcl.ExtCtrls;
+Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ComCtrls, Vcl.ExtCtrls;
 
 Type
   TLaunchFileForm = Class(TForm)
@@ -29,9 +28,11 @@ Type
     Procedure RefreshDisplay(Sender: TObject);
   strict private
     _loading: Boolean;
+    _selectinstance: Boolean;
     _selectedobject: TObject;
   public
     Procedure DelphiVersionDetected(Const inDelphiVersion: String);
+    Procedure Initialize(Const inFileName: String);
     Property SelectedObject: TObject Read _selectedobject;
   End;
 
@@ -63,6 +64,7 @@ End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
 Begin
+  _selectinstance := False;
   _selectedobject := nil;
 
   If Assigned(Screen.MessageFont) Then
@@ -77,8 +79,6 @@ Begin
   Finally
     _loading := False;
   End;
-
-  Self.RefreshDisplay(nil);
 End;
 
 Procedure TLaunchFileForm.FormResize(Sender: TObject);
@@ -95,6 +95,15 @@ Begin
     Settings.WindowSize[Self.ClassName].Width := Self.Width
   Else
     Settings.WindowSize[Self.ClassName].Width := 0;
+End;
+
+Procedure TLaunchFileForm.Initialize(Const inFileName: String);
+Begin
+  Self.Caption := inFileName;
+
+  _selectinstance := inFileName.ToLower.EndsWith('.pas') Or inFileName.ToLower.EndsWith('.dfm');
+
+  Self.RefreshDisplay(nil);
 End;
 
 Procedure TLaunchFileForm.InstancesTreeViewChange(Sender: TObject; Node: TTreeNode);
@@ -124,7 +133,7 @@ Begin
     Self.ModalResult := mrOk;
 End;
 
-Procedure TLaunchFileForm.RefreshDisplay;
+Procedure TLaunchFileForm.RefreshDisplay(Sender: TObject);
 Var
   ver: TAEIDEVersion;
   inst: TAEIDEInstance;
@@ -168,7 +177,10 @@ Begin
     End;
 
     If sel.IsEmpty Then
-      InstancesTreeView.Selected := lastver;
+      If Not _selectinstance Or Not Assigned(lastver) Or (lastver.Count = 0) Then
+        InstancesTreeView.Selected := lastver
+      Else
+        InstancesTreeView.Selected := lastver.Item[0];
   Finally
     InstancesTreeView.Items.EndUpdate;
   End;

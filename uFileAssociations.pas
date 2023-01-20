@@ -21,7 +21,7 @@ Const
   CLASSESROOT = '\SOFTWARE\Classes\';
   AEBDSLAUNCHERROOT = CLASSESROOT + 'AEBDSLauncher';
   BDSLAUNCHERBACKUP = 'AEBDSLauncherBackup';
-  CHANGEEXTENSIONS : Array[0..6] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj');
+  CHANGEEXTENSIONS : Array[0..9] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj', '.dpkw', '.fmx', '.bdsgroup');
 
 Procedure NotifyAssociationsChange;
 Begin
@@ -46,26 +46,32 @@ Begin
   If rootkeyfound Then
     inRegistry.DeleteKey(AEBDSLAUNCHERROOT + inPath);
 
+  // Does this association exist at the moment?
   If inRegistry.OpenKey(CLASSESROOT + inPath, False) Then
   Try
-    If inRegistry.ValueExists(BDSLAUNCHERBACKUP) Then
+    // Is the file extension currently associated to AE BDSLauncher?
+    If inRegistry.ReadString('') = 'AEBDSLauncher' + inPath Then
     Begin
-      inRegistry.WriteString('', inRegistry.ReadString(BDSLAUNCHERBACKUP));
+      If inRegistry.ValueExists(BDSLAUNCHERBACKUP) Then
+      Begin
+        inRegistry.WriteString('', inRegistry.ReadString(BDSLAUNCHERBACKUP));
 
+        // If backup value exists there was an association for sure, therefore the association must not be deleted, no matter what
+        delkey := False;
+      End
+      Else
+        // No backup key was found. This can mean there was no previous association OR we are reverting from a non-taken-over
+        // state. Therefore, association only has to be deleted if our key was found!
+        delkey := rootkeyfound;
+    End;
+
+    If inRegistry.ValueExists(BDSLAUNCHERBACKUP) Then
       inRegistry.DeleteValue(BDSLAUNCHERBACKUP);
-
-      // If backup value exists there was an association for sure, therefore the association must not be deleted, no matter what
-      delkey := False;
-    End
-    Else
-      // No backup key was found. This can mean there was no previous association OR we are reverting from a non-taken-over
-      // state. Therefore, association only has to be deleted if our key was found!
-      delkey := rootkeyfound;
   Finally
     inRegistry.CloseKey;
   End;
 
-  If delkey Then
+  If delkey And inRegistry.KeyExists(CLASSESROOT + inPath) Then
     inRegistry.DeleteKey(CLASSESROOT + inPath);
 End;
 
@@ -103,11 +109,12 @@ Begin
   Try
     oldtarget := '';
 
-    If Not inRegistry.ValueExists(BDSLAUNCHERBACKUP) Then
+    If Not inRegistry.ValueExists('') Or (inRegistry.ReadString('') <> 'AEBDSLauncher' + inPath) Then
     Begin
       If inRegistry.ValueExists('') Then
       Begin
         oldtarget := inRegistry.ReadString('');
+
         inRegistry.WriteString(BDSLAUNCHERBACKUP, oldtarget);
       End;
 
@@ -165,7 +172,7 @@ Begin
 
   If icon.IsEmpty Then
     icon := ParamStr(0);
-  If inRegistry.OpenKey(AEBDSLAUNCHERROOT + inPath+ '\DefaultIcon', True) Then
+  If inRegistry.OpenKey(AEBDSLAUNCHERROOT + inPath + '\DefaultIcon', True) Then
   Try
     inRegistry.WriteString('', icon);
   Finally

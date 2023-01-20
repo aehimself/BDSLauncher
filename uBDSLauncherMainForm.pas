@@ -416,6 +416,7 @@ Var
   determinedversion: String;
   ver: TAEIDEVersion;
   inst: TAEIDEInstance;
+  instancebanner: Boolean;
 Begin
   BDSLogger.Log('Attempting to open file ' + inFileName);
 
@@ -424,11 +425,20 @@ Begin
 
   If Length(RuleEngine.DelphiVersions.InstalledVersions) > 0 Then
   Begin
-    BDSLogger.Log('Running Delphi instances:');
+    instancebanner := False;
 
     For ver In RuleEngine.DelphiVersions.InstalledVersions Do
       For inst In ver.Instances Do
+      Begin
+        If Not instancebanner Then
+        Begin
+          BDSLogger.Log('Running Delphi instances:');
+
+          instancebanner := True;
+        End;
+
         BDSLogger.Log(inst.Name);
+      End;
   End;
 
   // Attempt to detect the Delphi version used to create the file. This information is used by rules and the selector window as well.

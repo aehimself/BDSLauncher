@@ -15,7 +15,7 @@ Uses System.Classes, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ComCtrls, Vcl.Ex
 Type
   TLaunchFileForm = Class(TForm)
     InstancesTreeView: TTreeView;
-    Timer1: TTimer;
+    RefreshInstancesTimer: TTimer;
     ButtonsPanel: TPanel;
     OpenButton: TButton;
     CancelButton: TButton;
@@ -26,10 +26,13 @@ Type
     Procedure InstancesTreeViewChange(Sender: TObject; Node: TTreeNode);
     Procedure InstancesTreeViewDblClick(Sender: TObject);
     Procedure RefreshDisplay(Sender: TObject);
+    Procedure InstancesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
   strict private
     _loading: Boolean;
+    _notexisting: String;
     _selectinstance: Boolean;
     _selectedobject: TObject;
+    Procedure AddNotExistingVersion;
   public
     Procedure DelphiVersionDetected(Const inDelphiVersion: String);
     Procedure Initialize(Const inFileName: String);
@@ -41,6 +44,22 @@ Implementation
 Uses System.SysUtils, uSettings, Vcl.Dialogs, System.UITypes, WinApi.Windows, Vcl.Graphics, AE.IDE.Versions;
 
 {$R *.dfm}
+
+Resourcestring
+  VERSION_NOTINSTALLED = 'File was created with this version but it''s not installed on this PC!';
+
+Procedure TLaunchFileForm.AddNotExistingVersion;
+Var
+  vertn: TTreeNode;
+Begin
+  If Not _notexisting.IsEmpty Then
+  Begin
+    vertn := InstancesTreeView.Items.AddChild(nil, _notexisting);
+    InstancesTreeView.Items.AddChild(vertn, VERSION_NOTINSTALLED);
+
+    vertn.Expand(False);
+  End;
+End;
 
 Procedure TLaunchFileForm.DelphiVersionDetected(Const inDelphiVersion: String);
 Var
@@ -59,11 +78,16 @@ Begin
     End;
 
   If Not found Then
-    MessageDlg('Selected project was created with ' + inDelphiVersion + ', which is not installed on this PC.', mtWarning, [mbOK], 0);
+  Begin
+    _notexisting := inDelphiVersion;
+
+    AddNotExistingVersion;
+  End;
 End;
 
 Procedure TLaunchFileForm.FormCreate(Sender: TObject);
 Begin
+  _notexisting := '';
   _selectinstance := False;
   _selectedobject := nil;
 
@@ -116,6 +140,11 @@ Begin
   OpenButton.Enabled := Assigned(_selectedobject);
 End;
 
+Procedure TLaunchFileForm.InstancesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
+Begin
+  AllowChange := Assigned(Node) And Assigned(Node.Data);
+End;
+
 Procedure TLaunchFileForm.InstancesTreeViewCollapsing(Sender: TObject; Node: TTreeNode; Var AllowCollapse: Boolean);
 Begin
   AllowCollapse := False;
@@ -123,12 +152,30 @@ End;
 
 Procedure TLaunchFileForm.InstancesTreeViewCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; Var DefaultDraw: Boolean);
 Begin
-  If TObject(Node.Data) Is TAEIDEVersion Then
+  If Not Assigned(Node.Data) Then
+  Begin
+    Sender.Canvas.Font.Style := [fsItalic];
+    Sender.Canvas.Font.Color := clGrayText;
+
+    If Not Assigned(Node.Parent) Then
+      Sender.Canvas.Font.Style := Sender.Canvas.Font.Style + [fsBold];
+  End
+  Else If TObject(Node.Data) Is TAEIDEVersion Then
     Sender.Canvas.Font.Style := [fsBold];
 End;
 
 Procedure TLaunchFileForm.InstancesTreeViewDblClick(Sender: TObject);
+Var
+  mousepos: TPoint;
+  node: TTreeNode;
 Begin
+  mousepos := InstancesTreeView.ScreenToClient(Mouse.CursorPos);
+
+  node := InstancesTreeView.GetNodeAt(mousepos.X, mousepos.Y);
+
+  If Not Assigned(node) Or (TObject(node.Data) <> _selectedobject) Then
+    Exit;
+
   If Assigned(_selectedobject) Then
     Self.ModalResult := mrOk;
 End;
@@ -175,6 +222,8 @@ Begin
 
       vertn.Expand(False);
     End;
+
+    AddNotExistingVersion;
 
     If sel.IsEmpty Then
       If Not _selectinstance Or Not Assigned(lastver) Or (lastver.Count = 0) Then

@@ -3,8 +3,8 @@ object LaunchFileForm: TLaunchFileForm
   Top = 0
   BorderIcons = [biSystemMenu]
   Caption = 'LaunchFileForm'
-  ClientHeight = 192
-  ClientWidth = 483
+  ClientHeight = 191
+  ClientWidth = 479
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -20,8 +20,8 @@ object LaunchFileForm: TLaunchFileForm
   object InstancesTreeView: TTreeView
     Left = 0
     Top = 0
-    Width = 483
-    Height = 155
+    Width = 479
+    Height = 154
     Align = alClient
     BorderStyle = bsNone
     HideSelection = False
@@ -32,23 +32,24 @@ object LaunchFileForm: TLaunchFileForm
     ShowRoot = False
     TabOrder = 0
     OnChange = InstancesTreeViewChange
+    OnChanging = InstancesTreeViewChanging
     OnCollapsing = InstancesTreeViewCollapsing
     OnCustomDrawItem = InstancesTreeViewCustomDrawItem
     OnDblClick = InstancesTreeViewDblClick
   end
   object ButtonsPanel: TPanel
     Left = 0
-    Top = 155
-    Width = 483
+    Top = 154
+    Width = 479
     Height = 37
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     DesignSize = (
-      483
+      479
       37)
     object OpenButton: TButton
-      Left = 400
+      Left = 384
       Top = 6
       Width = 75
       Height = 25
@@ -59,7 +60,7 @@ object LaunchFileForm: TLaunchFileForm
       TabOrder = 0
     end
     object CancelButton: TButton
-      Left = 312
+      Left = 296
       Top = 6
       Width = 75
       Height = 25
@@ -70,10 +71,10 @@ object LaunchFileForm: TLaunchFileForm
       TabOrder = 1
     end
   end
-  object Timer1: TTimer
+  object RefreshInstancesTimer: TTimer
     Interval = 10000
     OnTimer = RefreshDisplay
-    Left = 8
+    Left = 64
     Top = 16
   end
 end

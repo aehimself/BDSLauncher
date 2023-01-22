@@ -86,6 +86,13 @@ Implementation
 
 Uses System.SysUtils, System.Generics.Defaults;
 
+Resourcestring
+  RULE_VERSION_AUTODETECT = 'Auto detect or use latest';
+  RULE_VERSION_EXPLICIT = 'Explicitly use %s';
+  RULE_INSTANCE_ALWAYSNEW = 'Always in new instance';
+  RULE_INSTANCE_CAPTIONFILTER = 'Find instance with "%s" in caption';
+  RULE_INSTANCE_ANY = 'Any instance';
+
 Const
   TXT_ALWAYSNEWINSTANCE = 'alwaysnewinstance';
   TXT_FILEMASKS = 'filemasks';
@@ -123,16 +130,16 @@ End;
 Function TRule.DisplayName: String;
 Begin
   If Self.DelphiVersion.IsEmpty Then
-    Result := 'Auto-detect Delphi version, or use latest' + sLineBreak
+    Result := RULE_VERSION_AUTODETECT + sLineBreak
   Else
-    Result := 'Explicitly use ' + Self.DelphiVersion + sLineBreak;
+    Result := Format(RULE_VERSION_EXPLICIT, [Self.DelphiVersion]) + sLineBreak;
 
-  If Self.AlwaysNewInstance Then Result := Result + 'Always in new instance'
+  If Self.AlwaysNewInstance Then Result := Result + RULE_INSTANCE_ALWAYSNEW
     Else
   If Not Self.InstanceCaptionContains.IsEmpty Then
-    Result := Result + 'Find instance with "' + Self.InstanceCaptionContains + '" in caption'
+    Result := Result + Format(RULE_INSTANCE_CAPTIONFILTER, [Self.InstanceCaptionContains])
   Else
-    Result := Result + 'Any opened instance';
+    Result := Result + RULE_INSTANCE_ANY;
 End;
 
 Function TRule.GetAsJSON: TJSONObject;

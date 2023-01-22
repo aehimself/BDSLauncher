@@ -10,6 +10,9 @@ Unit uFileAssociations;
 
 Interface
 
+Const
+  KNOWNEXTENSIONS : Array[0..9] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj', '.dpkw', '.fmx', '.bdsgroup');
+
 Procedure GiveBackFileAssociations;
 Procedure TakeOverFileAssociations;
 
@@ -21,7 +24,6 @@ Const
   CLASSESROOT = '\SOFTWARE\Classes\';
   AEBDSLAUNCHERROOT = CLASSESROOT + 'AEBDSLauncher';
   BDSLAUNCHERBACKUP = 'AEBDSLauncherBackup';
-  CHANGEEXTENSIONS : Array[0..9] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj', '.dpkw', '.fmx', '.bdsgroup');
 
 Procedure NotifyAssociationsChange;
 Begin
@@ -84,7 +86,7 @@ Begin
   Try
     reg.RootKey := HKEY_CURRENT_USER;
 
-    For extension In CHANGEEXTENSIONS Do
+    For extension In KNOWNEXTENSIONS Do
       InternalGiveBackFileAssociations(reg, extension);
 
     NotifyAssociationsChange;
@@ -189,7 +191,7 @@ Begin
   Try
     reg.RootKey := HKEY_CURRENT_USER;
 
-    For extension In CHANGEEXTENSIONS Do
+    For extension In KNOWNEXTENSIONS Do
       InternalTakeOverFileAssociations(reg, extension);
 
     NotifyAssociationsChange;

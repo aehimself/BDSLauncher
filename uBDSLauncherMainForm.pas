@@ -92,6 +92,18 @@ Implementation
 Uses WinApi.Messages, System.SysUtils, uLaunchFileForm, Vcl.Dialogs, System.UITypes, uFileAssociations,
      uDetectDelphiVersionOfProject, uBDSLogger, System.Masks;
 
+Resourcestring
+  VERSION_AUTODETECT = 'Auto detect or use latest';
+  ADDRULE_CAPTION = 'Add new rule';
+  ADDRULE_RULENAME = 'Rule name:';
+  ERROR_RULEEXISTS = 'A rule named %s already exists!';
+  DELETERULE_CONFIRM = 'Are you sure you want to delete this rule?';
+  OPENFILE_DELPHISOURCEFILE = 'Delphi source files';
+  ERROR_FILEDOESNTEXIST = '%s does not exist!';
+  RENAMERULE_CAPTION = 'Rename rule';
+  RENAMERULE_NEWRULENAME = 'New rule name:';
+  SETTINGSSAVED = 'Settings saved successfully.';
+
 {$R *.dfm}
 
 //
@@ -187,9 +199,7 @@ Begin
 
     Self.OpenFile(fname);
 
-    PostMessage(Self.Handle, WM_QUIT, 0, 0);
-
-    Exit;
+    Halt(0);
   End;
 
   BDSLogger.Log('No file name was provided, showing rule editor form...');
@@ -199,7 +209,7 @@ Begin
 
   DelphiVersionComboBox.Items.BeginUpdate;
   Try
-    DelphiVersionComboBox.Items.Add('Auto detect or use latest');
+    DelphiVersionComboBox.Items.Add(VERSION_AUTODETECT);
 
     For ver In RuleEngine.DelphiVersions.InstalledVersions Do
       DelphiVersionComboBox.Items.AddObject(ver.Name, ver);
@@ -348,12 +358,12 @@ Var
 Begin
   rulename := '';
 
-  If Not InputQuery('Add new rule', 'Rule name:', rulename) Or rulename.IsEmpty Then
+  If Not InputQuery(ADDRULE_CAPTION, ADDRULE_RULENAME, rulename) Or rulename.IsEmpty Then
     Exit;
 
   If RuleEngine.ContainsRule(rulename) Then
   Begin
-    MessageDlg('A rule named ' + rulename + ' already exists!', mtError, [mbOK], 0);
+    MessageDlg(Format(ERROR_RULEEXISTS, [rulename]), mtError, [mbOK], 0);
     Exit;
   End;
 
@@ -380,7 +390,7 @@ Var
 Begin
   tn := RulesTreeView.Selected;
 
-  If Not Assigned(tn) Or (MessageDlg('Are you sure you want to delete this rule?', mtConfirmation, [mbYes, mbNo], 0) <> mrYes) Then
+  If Not Assigned(tn) Or (MessageDlg(DELETERULE_CONFIRM, mtConfirmation, [mbYes, mbNo], 0) <> mrYes) Then
     Exit;
 
   Repeat
@@ -400,9 +410,19 @@ End;
 
 Procedure TBDSLauncherMainForm.OpenDelphisourcefile1Click(Sender: TObject);
 Var
-  fname: String;
+  fname, filter: String;
+  a: Integer;
 Begin
-  If PromptForFileName(fname, 'Delphi source files|*.pas;*.dproj;*.dpk;*.dfm;*.groupproj') Then
+  filter := '';
+
+  For a := Low(KNOWNEXTENSIONS) To High(KNOWNEXTENSIONS) Do
+    filter := filter + '*' + KNOWNEXTENSIONS[a] + ',';
+
+  filter := filter.Substring(0, filter.Length - 1);
+
+  filter := Format('%s (%s)|%s', [OPENFILE_DELPHISOURCEFILE, filter, filter.Replace(',', ';')]);
+
+  If PromptForFileName(fname, filter) Then
   Begin
     RuleEngine.DelphiVersions.RefreshInstalledVersions;
 
@@ -421,7 +441,7 @@ Begin
   BDSLogger.Log('Attempting to open file ' + inFileName);
 
   If Not FileExists(inFileName) Then
-    Raise EArgumentException.Create(inFileName + ' does not exist!');
+    Raise EArgumentException.Create(Format(ERROR_FILEDOESNTEXIST, [inFileName]));
 
   If Length(RuleEngine.DelphiVersions.InstalledVersions) > 0 Then
   Begin
@@ -651,12 +671,12 @@ Begin
 
   rulename := RulesTreeView.Selected.Text;
 
-  If Not InputQuery('Rename rule', 'New rule name:', rulename) Or rulename.IsEmpty Then
+  If Not InputQuery(RENAMERULE_CAPTION, RENAMERULE_NEWRULENAME, rulename) Or rulename.IsEmpty Then
     Exit;
 
   If RuleEngine.ContainsRule(rulename) Then
   Begin
-    MessageDlg('A rule named ' + rulename + ' already exists!', mtError, [mbOK], 0);
+    MessageDlg(Format(ERROR_RULEEXISTS, [rulename]), mtError, [mbOK], 0);
     Exit;
   End;
 
@@ -760,7 +780,7 @@ Begin
   Begin
     Settings.Save;
 
-    MessageDlg('Settings saved successfully.', mtInformation, [mbOK], 0);
+    MessageDlg(SETTINGSSAVED, mtInformation, [mbOK], 0);
   End;
 End;
 

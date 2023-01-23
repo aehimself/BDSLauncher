@@ -213,6 +213,7 @@ Begin
   inherited;
 
   _dvers := TAEDelphiVersions.Create(nil);
+  _dvers.DDEDiscoveryTimeout := 2;
   _rules := TObjectDictionary<String, TRule>.Create([doOwnsValues]);
 End;
 

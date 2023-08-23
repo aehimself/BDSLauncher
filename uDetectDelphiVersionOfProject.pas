@@ -51,8 +51,10 @@ Begin
     Repeat
       cpos := s.IndexOf('.bpl', cpos);
       If cpos > -1 Then
+      Begin
         Integer.TryParse(s.Substring(cpos - 3, 3), outExcludedSuffix);
-      Inc(cpos, 4);
+        Inc(cpos, 4);
+      End;
     Until (cpos = -1) Or (outExcludedSuffix > 0);
   End;
 End;

@@ -99,6 +99,8 @@ Begin
       Result := IDEVER_DELPHI104;
     193, 194, 195:
       Result := IDEVER_DELPHI11;
+    200:
+      Result := IDEVER_DELPHI12;
   End;
   {$ENDREGION}
 
@@ -139,6 +141,9 @@ Begin
         Result := IDEVER_DELPHI104;
       280:
         Result := IDEVER_DELPHI11;
+      {$MESSAGE 'Excluded package suffix for Delphi12 needs to be confirmed!'}
+      290:
+        Result := IDEVER_DELPHI12;
     End;
   {$ENDREGION}
 End;

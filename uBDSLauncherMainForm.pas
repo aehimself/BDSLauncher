@@ -525,6 +525,7 @@ End;
 Procedure TBDSLauncherMainForm.OpenInInstance(Const inFileName: String; Const inInstance: TAEIDEInstance);
 Begin
   inInstance.OpenFile(inFileName);
+  SetForegroundWindow(inInstance.IDEHWND);
 
   BDSLogger.Log(ExtractFileName(inFileName) + ' was started in an existing ' + inInstance.Name + ' instance.');
 End;
@@ -538,6 +539,7 @@ Begin
   Else
   Begin
     inst := inIDEVersion.NewIDEInstance(inParams);
+    SetForegroundWindow(inst.IDEHWND);
     inst.OpenFile(inFileName);
   End;
 

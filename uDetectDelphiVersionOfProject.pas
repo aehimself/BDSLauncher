@@ -36,8 +36,8 @@ Begin
   Begin
     Inc(startindex, VERSTART.Length);
     endindex := inFileText.IndexOf(VEREND, startindex);
-    s := inFileText.Substring(startindex, endindex - startindex).Replace('.', FormatSettings.DecimalSeparator).Replace(',', FormatSettings.DecimalSeparator);
-    outVersionNumber := Round(Double.Parse(s) * 10);
+    s := inFileText.Substring(startindex, endindex - startindex).Replace('.', '').Replace(',', '');
+    outVersionNumber := Integer.Parse(s);
   End;
 
   startindex := inFiletext.IndexOf(EXCLSTART);
@@ -99,7 +99,7 @@ Begin
       Result := IDEVER_DELPHI104;
     193, 194, 195:
       Result := IDEVER_DELPHI11;
-    200:
+    201:
       Result := IDEVER_DELPHI12;
   End;
   {$ENDREGION}
@@ -141,7 +141,6 @@ Begin
         Result := IDEVER_DELPHI104;
       280:
         Result := IDEVER_DELPHI11;
-      {$MESSAGE 'Excluded package suffix for Delphi12 needs to be confirmed!'}
       290:
         Result := IDEVER_DELPHI12;
     End;

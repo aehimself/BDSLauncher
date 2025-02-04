@@ -99,7 +99,7 @@ Begin
       Result := IDEVER_DELPHI104;
     193, 194, 195:
       Result := IDEVER_DELPHI11;
-    201:
+    201, 202:
       Result := IDEVER_DELPHI12;
   End;
   {$ENDREGION}

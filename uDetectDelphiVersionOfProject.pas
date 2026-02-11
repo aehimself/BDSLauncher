@@ -99,8 +99,9 @@ Begin
       Result := IDEVER_DELPHI104;
     193, 194, 195:
       Result := IDEVER_DELPHI11;
-    201, 202, 203:
+    201, 202:
       Result := IDEVER_DELPHI12;
+    // 203 is the version number of Dephi 12 and 13 as well
   End;
   {$ENDREGION}
 
@@ -143,8 +144,13 @@ Begin
         Result := IDEVER_DELPHI11;
       290:
         Result := IDEVER_DELPHI12;
+      370:
+        Result := IDEVER_DELPHI13;
     End;
   {$ENDREGION}
+
+  If Result.IsEmpty And (ver = 203) Then
+    Result := IDEVER_DELPHI13;
 End;
 
 Function CheckFromBDSProj(Const inBDSProjFileName: String): String;

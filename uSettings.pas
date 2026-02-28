@@ -15,17 +15,29 @@ Uses AE.Application.Setting, AE.Application.Settings, System.Generics.Collection
 Type
   TRule = Class(TAEApplicationSetting)
   strict protected
+    _alwaysnewinstance: Boolean;
+    _filemasks: String;
+    _delphiversion: String;
+    _instancecaptioncontains: String;
+    _newinstanceparams: String;
+    _order: Word;
     Procedure InternalClear; Override;
+    Procedure SetAlwaysNewInstance(Const inAlwaysNewInstance: Boolean);
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
+    Procedure SetFileMasks(Const inFileMasks: String);
+    Procedure SetDelphiVersion(Const inDelphiVersion: String);
+    Procedure SetInstanceCaptionContains(Const inInstanceCaptionContains: String);
+    Procedure SetNewInstanceParams(Const inNewInstanceParams: String);
+    Procedure SetOrder(Const inOrder: Word);
     Function GetAsJSON: TJSONObject; Override;
   public
-    AlwaysNewInstance: Boolean;
-    FileMasks: String;
-    DelphiVersion: String;
-    InstanceCaptionContains: String;
-    NewInstanceParams: String;
-    Order: Word;
     Function DisplayName: String;
+    Property AlwaysNewInstance: Boolean Read _alwaysnewinstance Write SetAlwaysNewInstance;
+    Property FileMasks: String Read _filemasks Write SetFileMasks;
+    Property DelphiVersion: String Read _delphiversion Write SetDelphiVersion;
+    Property InstanceCaptionContains: String Read _instancecaptioncontains Write SetInstanceCaptionContains;
+    Property NewInstanceParams: String Read _newinstanceparams Write SetNewInstanceParams;
+    Property Order: Word Read _order Write SetOrder;
   End;
 
   TRuleEngine = Class(TAEApplicationSetting)
@@ -52,18 +64,26 @@ Type
 
   TWindowSize = Class(TAEApplicationSetting)
   strict protected
+    _height: Integer;
+    _width: Integer;
     Procedure InternalClear; Override;
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
+    Procedure SetHeight(Const inHeight: Integer);
+    Procedure SetWidth(Const inWidth: Integer);
     Function GetAsJSON: TJSONObject; Override;
   public
-    Height: Integer;
-    Width: Integer;
+    Property Height: Integer Read _height Write SetHeight;
+    Property Width: Integer Read _width Write SetWidth;
   End;
 
   TSettings = Class(TAEApplicationSettings)
   strict private
+    _enablelogging: Boolean;
     _ruleengine: TRuleEngine;
+    _rulelistwidth: Integer;
     _windows: TObjectDictionary<String, TWindowSize>;
+    Procedure SetEnableLogging(Const inEnableLogging: Boolean);
+    Procedure SetRuleListWidth(Const inRuleListWidth: Integer);
     Procedure SetWindowSize(Const inWindowClass: String; Const inWindowSize: TWindowSize);
     Function GetWindowSize(Const inWindowClass: String): TWindowSize;
   strict protected
@@ -71,11 +91,11 @@ Type
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
     Function GetAsJSON: TJSONObject; Override;
   public
-    EnableLogging: Boolean;
-    RuleListWidth: Integer;
     Constructor Create(Const inSettingsFileName: String); Override;
     Destructor Destroy; Override;
+    Property EnableLogging: Boolean Read _enablelogging Write SetEnableLogging;
     Property RuleEngine: TRuleEngine Read _ruleengine;
+    Property RuleListWidth: Integer Read _rulelistwidth Write SetRuleListWidth;
     Property WindowSize[Const inWindowClass: String]: TWindowSize Read GetWindowSize Write SetWindowSize;
   End;
 
@@ -129,15 +149,15 @@ End;
 
 Function TRule.DisplayName: String;
 Begin
-  If Self.DelphiVersion.IsEmpty Then
+  If Self._delphiversion.IsEmpty Then
     Result := RULE_VERSION_AUTODETECT + sLineBreak
   Else
-    Result := Format(RULE_VERSION_EXPLICIT, [Self.DelphiVersion]) + sLineBreak;
+    Result := Format(RULE_VERSION_EXPLICIT, [Self._delphiversion]) + sLineBreak;
 
-  If Self.AlwaysNewInstance Then Result := Result + RULE_INSTANCE_ALWAYSNEW
+  If Self._alwaysnewinstance Then Result := Result + RULE_INSTANCE_ALWAYSNEW
     Else
-  If Not Self.InstanceCaptionContains.IsEmpty Then
-    Result := Result + Format(RULE_INSTANCE_CAPTIONFILTER, [Self.InstanceCaptionContains])
+  If Not Self._instancecaptioncontains.IsEmpty Then
+    Result := Result + Format(RULE_INSTANCE_CAPTIONFILTER, [Self._instancecaptioncontains])
   Else
     Result := Result + RULE_INSTANCE_ANY;
 End;
@@ -146,47 +166,102 @@ Function TRule.GetAsJSON: TJSONObject;
 Begin
   Result := inherited;
 
-  If Self.AlwaysNewInstance Then
-    Result.AddPair(TXT_ALWAYSNEWINSTANCE, TJSONBool.Create(Self.AlwaysNewInstance));
+  If Self._alwaysnewinstance Then
+    Result.AddPair(TXT_ALWAYSNEWINSTANCE, TJSONBool.Create(Self._alwaysnewinstance));
 
-  If Not Self.DelphiVersion.IsEmpty Then
-    Result.AddPair(TXT_DELPHIVERSION, Self.DelphiVersion);
+  If Not Self._delphiversion.IsEmpty Then
+    Result.AddPair(TXT_DELPHIVERSION, Self._delphiversion);
 
-  If Not Self.FileMasks.IsEmpty Then
-    Result.AddPair(TXT_FILEMASKS, Self.FileMasks);
+  If Not Self._filemasks.IsEmpty Then
+    Result.AddPair(TXT_FILEMASKS, Self._filemasks);
 
-  If Not Self.InstanceCaptionContains.IsEmpty Then
-    Result.AddPair(TXT_INSTANCECAPTIONCONTAINS, Self.InstanceCaptionContains);
+  If Not Self._instancecaptioncontains.IsEmpty Then
+    Result.AddPair(TXT_INSTANCECAPTIONCONTAINS, Self._instancecaptioncontains);
 
-  If Not Self.NewInstanceParams.IsEmpty Then
-    Result.AddPair(TXT_NEWINSTANCEPARAMS, Self.NewInstanceParams);
+  If Not Self._newinstanceparams.IsEmpty Then
+    Result.AddPair(TXT_NEWINSTANCEPARAMS, Self._newinstanceparams);
 
-  If Self.Order <> 0 Then
-    Result.AddPair(TXT_ORDER, TJSONNumber.Create(Self.Order));
+  If Self._order <> 0 Then
+    Result.AddPair(TXT_ORDER, TJSONNumber.Create(Self._order));
 End;
 
 Procedure TRule.InternalClear;
 Begin
   inherited;
 
-  Self.AlwaysNewInstance := False;
-  Self.DelphiVersion := '';
-  Self.FileMasks := '';
-  Self.InstanceCaptionContains := '';
-  Self.NewInstanceParams := '';
-  Self.Order := 0;
+  Self._alwaysnewinstance := False;
+  Self._delphiversion := '';
+  Self._filemasks := '';
+  Self._instancecaptioncontains := '';
+  Self._newinstanceparams := '';
+  Self._order := 0;
+End;
+
+Procedure TRule.SetAlwaysNewInstance(Const inAlwaysNewInstance: Boolean);
+Begin
+  If _alwaysnewinstance = inAlwaysNewInstance Then
+    Exit;
+
+  _alwaysnewinstance := inAlwaysNewInstance;
+
+  Self.SetChanged;
 End;
 
 Procedure TRule.SetAsJSON(Const inJSON: TJSONObject);
 Begin
   inherited;
 
-  inJSON.TryGetValue<Boolean>(TXT_ALWAYSNEWINSTANCE, Self.AlwaysNewInstance);
-  inJSON.TryGetValue<String>(TXT_DELPHIVERSION, Self.DelphiVersion);
-  inJSON.TryGetValue<String>(TXT_FILEMASKS, Self.FileMasks);
-  inJSON.TryGetValue<String>(TXT_INSTANCECAPTIONCONTAINS, Self.InstanceCaptionContains);
-  inJSON.TryGetValue<String>(TXT_NEWINSTANCEPARAMS, Self.NewInstanceParams);
-  inJSON.TryGetValue<Word>(TXT_ORDER, Self.Order);
+  inJSON.TryGetValue<Boolean>(TXT_ALWAYSNEWINSTANCE, Self._alwaysnewinstance);
+  inJSON.TryGetValue<String>(TXT_DELPHIVERSION, Self._delphiversion);
+  inJSON.TryGetValue<String>(TXT_FILEMASKS, Self._filemasks);
+  inJSON.TryGetValue<String>(TXT_INSTANCECAPTIONCONTAINS, Self._instancecaptioncontains);
+  inJSON.TryGetValue<String>(TXT_NEWINSTANCEPARAMS, Self._newinstanceparams);
+  inJSON.TryGetValue<Word>(TXT_ORDER, Self._order);
+End;
+
+procedure TRule.SetDelphiVersion(const inDelphiVersion: String);
+begin
+
+end;
+
+Procedure TRule.SetFileMasks(Const inFileMasks: String);
+Begin
+  If _filemasks = inFileMasks Then
+    Exit;
+
+  _filemasks := inFileMasks;
+
+  Self.SetChanged;
+End;
+
+Procedure TRule.SetInstanceCaptionContains(Const inInstanceCaptionContains: String);
+Begin
+  If _instancecaptioncontains = inInstanceCaptionContains Then
+    Exit;
+
+  _instancecaptioncontains := inInstanceCaptionContains;
+
+  Self.SetChanged;
+End;
+
+Procedure TRule.SetNewInstanceParams(Const inNewInstanceParams: String);
+Begin
+  If _newinstanceparams = inNewInstanceParams Then
+    Exit;
+
+  _newinstanceparams := inNewInstanceParams;
+
+  Self.SetChanged;
+End;
+
+Procedure TRule.SetOrder(Const inOrder: Word);
+Begin
+  If _order = inOrder Then
+    Exit;
+
+  _order := inOrder;
+
+  Self.SetChanged;
 End;
 
 //
@@ -227,7 +302,12 @@ End;
 
 Procedure TRuleEngine.RenameRule(Const inRuleName, inNewName: String);
 Begin
+  If inRuleName = inNewName Then
+    Exit;
+
   _rules.Add(inNewName, _rules.ExtractPair(inRuleName).Value);
+
+  Self.SetChanged;
 End;
 
 Function TRuleEngine.GetAsJSON: TJSONObject;
@@ -275,9 +355,17 @@ End;
 Procedure TRuleEngine.SetRule(Const inRuleName: String; Const inRule: TRule);
 Begin
   If Assigned(inRule) Then
-    _rules.AddOrSetValue(inRuleName, inRule)
-  Else
+  Begin
+    _rules.AddOrSetValue(inRuleName, inRule);
+
+    Self.SetChanged;
+  End
+  Else If _rules.ContainsKey(inRuleName) Then
+  Begin
     _rules.Remove(inRuleName);
+
+    Self.SetChanged;
+  End;
 End;
 
 //
@@ -288,27 +376,47 @@ Function TWindowSize.GetAsJSON: TJSONObject;
 Begin
   Result := inherited;
 
-  If Self.Height <> 0 Then
-    Result.AddPair(TXT_HEIGHT, TJSONNumber.Create(Self.Height));
+  If Self._height <> 0 Then
+    Result.AddPair(TXT_HEIGHT, TJSONNumber.Create(Self._height));
 
-  if Self.Width <> 0 Then
-    Result.AddPair(TXT_WIDTH, TJSONNumber.Create(Self.Width))
+  if Self._width <> 0 Then
+    Result.AddPair(TXT_WIDTH, TJSONNumber.Create(Self._width))
 End;
 
 Procedure TWindowSize.InternalClear;
 Begin
   inherited;
 
-  Self.Height := 0;
-  Self.Width := 0;
+  Self._height := 0;
+  Self._width := 0;
 End;
 
 Procedure TWindowSize.SetAsJSON(Const inJSON: TJSONObject);
 Begin
   inherited;
 
-  inJSON.TryGetValue<Integer>(TXT_HEIGHT, Self.Height);
-  inJSON.TryGetValue<Integer>(TXT_WIDTH, Self.Width);
+  inJSON.TryGetValue<Integer>(TXT_HEIGHT, Self._height);
+  inJSON.TryGetValue<Integer>(TXT_WIDTH, Self._width);
+End;
+
+Procedure TWindowSize.SetHeight(Const inHeight: Integer);
+Begin
+  If _height = inHeight Then
+    Exit;
+
+  _height := inHeight;
+
+  Self.SetChanged;
+End;
+
+Procedure TWindowSize.SetWidth(Const inWidth: Integer);
+Begin
+  If _width = inWidth Then
+    Exit;
+
+  _width := inWidth;
+
+  Self.SetChanged;
 End;
 
 //
@@ -338,13 +446,13 @@ Var
 Begin
   Result := inherited;
 
-  If Self.EnableLogging Then
-    Result.AddPair(TXT_ENABLELOGGING, TJSONBool.Create(Self.EnableLogging));
+  If Self._enablelogging Then
+    Result.AddPair(TXT_ENABLELOGGING, TJSONBool.Create(Self._enablelogging));
   If Length(_ruleengine.Rules) > 0 Then
     Result.AddPair(TXT_RULES, _ruleengine.AsJSON);
 
-  If Self.RuleListWidth <> 0 Then
-    Result.AddPair(TXT_RULELISTWIDTH, TJSONNumber.Create(Self.RuleListWidth));
+  If Self._rulelistwidth <> 0 Then
+    Result.AddPair(TXT_RULELISTWIDTH, TJSONNumber.Create(Self._rulelistwidth));
 
   If _windows.Count > 0 Then
   Begin
@@ -381,8 +489,8 @@ Begin
   inherited;
 
   _ruleengine.Clear;
-  Self.EnableLogging := False;
-  Self.RuleListWidth := 0;
+  Self._enablelogging := False;
+  Self._rulelistwidth := 0;
   _windows.Clear;
 End;
 
@@ -392,22 +500,50 @@ Var
 Begin
   inherited;
 
-  inJSON.TryGetValue<Boolean>(TXT_ENABLELOGGING, Self.EnableLogging);
+  inJSON.TryGetValue<Boolean>(TXT_ENABLELOGGING, Self._enablelogging);
   If inJSON.GetValue(TXT_RULES) <> nil Then
     _ruleengine.AsJSON := inJSON.GetValue<TJSONObject>(TXT_RULES);
-  inJSON.TryGetValue<Integer>(TXT_RULELISTWIDTH, Self.RuleListWidth);
+  inJSON.TryGetValue<Integer>(TXT_RULELISTWIDTH, Self._rulelistwidth);
 
   If inJSON.GetValue(TXT_WINDOWS) <> nil Then
     For jp In inJSON.GetValue<TJSONObject>(TXT_WINDOWS) Do
       _windows.Add(jp.JsonString.Value, TWindowSize.NewFromJSON(jp.JsonValue) As TWindowSize);
 End;
 
+Procedure TSettings.SetEnableLogging(Const inEnableLogging: Boolean);
+Begin
+  If _enablelogging = inEnableLogging Then
+    Exit;
+
+  _enablelogging := inEnableLogging;
+
+  Self.SetChanged;
+End;
+
+Procedure TSettings.SetRuleListWidth(Const inRuleListWidth: Integer);
+Begin
+  If _rulelistwidth = inRuleListWidth Then
+    Exit;
+
+  _rulelistwidth := inRuleListWidth;
+
+  Self.SetChanged;
+End;
+
 Procedure TSettings.SetWindowSize(Const inWindowClass: String; Const inWindowSize: TWindowSize);
 Begin
   If Assigned(inWindowSize) Then
-    _windows.AddOrSetValue(inWindowClass, inWindowSize)
-  Else
+  Begin
+    _windows.AddOrSetValue(inWindowClass, inWindowSize);
+
+    Self.SetChanged;
+  End
+  Else If _windows.ContainsKey(inWindowClass) Then
+  Begin
     _windows.Remove(inWindowClass);
+
+    Self.SetChanged;
+  End;
 End;
 
 Initialization

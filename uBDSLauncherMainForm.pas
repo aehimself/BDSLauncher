@@ -397,7 +397,7 @@ Begin
     tn := tn.GetNext;
 
     If Assigned(tn) And Not Assigned(tn.Parent) Then
-      Dec(TRule(tn.Data).Order);
+      TRule(tn.Data).Order := TRule(tn.Data).Order - 1;
   Until Not Assigned(tn);
 
   tn := RulesTreeView.Selected;
@@ -577,7 +577,14 @@ Begin
     If Not rule.DelphiVersion.IsEmpty Then
       ver := RuleEngine.DelphiVersions.VersionByName(rule.DelphiVersion) // Rule explicitly specified a Delphi version
     Else If Not inDetectedVersion.IsEmpty Then
-      ver := RuleEngine.DelphiVersions.VersionByName(inDetectedVersion) // Auto detection was enabled, version could be detected
+    Begin
+      // Auto detection was enabled, version could be detected
+
+      ver := RuleEngine.DelphiVersions.VersionByName(inDetectedVersion);
+
+      If Not Assigned(ver) Then
+        ver := RuleEngine.DelphiVersions.VersionByName(inDetectedVersion + ' x64');
+    End
     Else
       ver := RuleEngine.DelphiVersions.LatestVersion; // Auto detection was specified by the rule, but version was not detected. In this case, use the latest
 

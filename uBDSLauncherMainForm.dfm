@@ -2,8 +2,8 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   Left = 0
   Top = 0
   Caption = 'AE BDSLauncher'
-  ClientHeight = 391
-  ClientWidth = 621
+  ClientHeight = 386
+  ClientWidth = 601
   Color = clBtnFace
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
@@ -21,14 +21,14 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Left = 250
     Top = 0
     Width = 5
-    Height = 391
+    Height = 386
     OnMoved = SplitterMoved
   end
   object RulesTreeView: TTreeView
     Left = 0
     Top = 0
     Width = 250
-    Height = 391
+    Height = 386
     Align = alLeft
     BorderStyle = bsNone
     DragMode = dmAutomatic
@@ -49,16 +49,16 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   object ScrollBox: TScrollBox
     Left = 255
     Top = 0
-    Width = 366
-    Height = 391
+    Width = 346
+    Height = 386
     Align = alClient
     BorderStyle = bsNone
     Color = clWindow
     ParentColor = False
     TabOrder = 1
     DesignSize = (
-      366
-      391)
+      346
+      386)
     object FileMaskLabel: TLabel
       Left = 8
       Top = 16
@@ -90,7 +90,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object FileMasksMemo: TMemo
       Left = 8
       Top = 37
-      Width = 352
+      Width = 332
       Height = 100
       Anchors = [akLeft, akTop, akRight]
       ScrollBars = ssBoth
@@ -101,7 +101,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object DelphiVersionComboBox: TComboBox
       Left = 8
       Top = 181
-      Width = 352
+      Width = 332
       Height = 22
       Style = csOwnerDrawFixed
       Anchors = [akLeft, akTop, akRight]
@@ -111,7 +111,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object AlwaysNewInstanceRadioButton: TRadioButton
       Left = 8
       Top = 232
-      Width = 352
+      Width = 332
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Always start in a new instance'
@@ -121,7 +121,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object SelectedInstanceRadioButton: TRadioButton
       Left = 8
       Top = 255
-      Width = 352
+      Width = 332
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Use an existing instance'
@@ -133,7 +133,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object InstanceContainsEdit: TEdit
       Left = 28
       Top = 299
-      Width = 332
+      Width = 312
       Height = 23
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 4
@@ -142,7 +142,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     object InstanceParamsEdit: TEdit
       Left = 8
       Top = 363
-      Width = 352
+      Width = 332
       Height = 23
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 5

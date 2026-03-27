@@ -102,6 +102,8 @@ Begin
     201, 202:
       Result := IDEVER_DELPHI12;
     // 203 is the version number of Dephi 12 and 13 as well
+    204: // 204 is the version of Delphi 13.1
+      Result := IDEVER_DELPHI13;
   End;
   {$ENDREGION}
 

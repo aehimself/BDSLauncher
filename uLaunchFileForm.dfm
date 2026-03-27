@@ -13,15 +13,18 @@ object LaunchFileForm: TLaunchFileForm
   Font.Name = 'Segoe UI'
   Font.Style = []
   KeyPreview = True
+  Padding.Left = 5
+  Padding.Top = 5
+  Padding.Right = 5
   Position = poScreenCenter
   OnCreate = FormCreate
   OnResize = FormResize
   TextHeight = 15
   object InstancesTreeView: TTreeView
-    Left = 0
-    Top = 0
-    Width = 479
-    Height = 154
+    Left = 5
+    Top = 5
+    Width = 469
+    Height = 146
     Align = alClient
     BorderStyle = bsNone
     HideSelection = False
@@ -38,19 +41,19 @@ object LaunchFileForm: TLaunchFileForm
     OnDblClick = InstancesTreeViewDblClick
   end
   object ButtonsPanel: TPanel
-    Left = 0
-    Top = 154
-    Width = 479
-    Height = 37
+    Left = 5
+    Top = 151
+    Width = 469
+    Height = 40
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     DesignSize = (
-      479
-      37)
+      469
+      40)
     object OpenButton: TButton
-      Left = 384
-      Top = 6
+      Left = 374
+      Top = 9
       Width = 75
       Height = 25
       Anchors = [akTop, akRight]
@@ -60,8 +63,8 @@ object LaunchFileForm: TLaunchFileForm
       TabOrder = 0
     end
     object CancelButton: TButton
-      Left = 296
-      Top = 6
+      Left = 286
+      Top = 9
       Width = 75
       Height = 25
       Anchors = [akTop, akRight]

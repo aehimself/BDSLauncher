@@ -2,7 +2,7 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
   Left = 0
   Top = 0
   Caption = 'AE BDSLauncher'
-  ClientHeight = 386
+  ClientHeight = 393
   ClientWidth = 601
   Color = clBtnFace
   DoubleBuffered = True
@@ -21,14 +21,15 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Left = 250
     Top = 0
     Width = 5
-    Height = 386
+    Height = 393
     OnMoved = SplitterMoved
+    ExplicitHeight = 386
   end
   object RulesTreeView: TTreeView
     Left = 0
     Top = 0
     Width = 250
-    Height = 386
+    Height = 393
     Align = alLeft
     BorderStyle = bsNone
     DragMode = dmAutomatic
@@ -45,20 +46,26 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     OnCollapsing = RulesTreeViewCollapsing
     OnDragDrop = RulesTreeViewDragDrop
     OnDragOver = RulesTreeViewDragOver
+    ExplicitHeight = 386
   end
   object ScrollBox: TScrollBox
     Left = 255
     Top = 0
     Width = 346
-    Height = 386
+    Height = 393
+    HorzScrollBar.Smooth = True
+    HorzScrollBar.Tracking = True
+    VertScrollBar.Smooth = True
+    VertScrollBar.Tracking = True
     Align = alClient
     BorderStyle = bsNone
     Color = clWindow
     ParentColor = False
     TabOrder = 1
+    ExplicitHeight = 386
     DesignSize = (
       346
-      386)
+      393)
     object FileMaskLabel: TLabel
       Left = 8
       Top = 16

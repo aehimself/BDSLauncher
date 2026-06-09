@@ -162,6 +162,8 @@ Var
   fname: String;
   a: Integer;
 Begin
+  ScrollBox.UseWheelForScrolling := True;
+
   Settings.Load;
 
   _loading := True;

@@ -52,6 +52,7 @@ Type
     Procedure InternalClear; Override;
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
     Function GetAsJSON: TJSONObject; Override;
+    Function InternalGetChanged: Boolean; Override;
   public
     Constructor Create; Override;
     Destructor Destroy; Override;
@@ -90,6 +91,7 @@ Type
     Procedure InternalClear; Override;
     Procedure SetAsJSON(Const inJSON: TJSONObject); Override;
     Function GetAsJSON: TJSONObject; Override;
+    Function InternalGetChanged: Boolean; Override;
   public
     Constructor Create(Const inSettingsFileName: String); Override;
     Destructor Destroy; Override;
@@ -219,10 +221,15 @@ Begin
   inJSON.TryGetValue<Word>(TXT_ORDER, Self._order);
 End;
 
-procedure TRule.SetDelphiVersion(const inDelphiVersion: String);
-begin
+Procedure TRule.SetDelphiVersion(Const inDelphiVersion: String);
+Begin
+  If _delphiversion = inDelphiVersion Then
+    Exit;
 
-end;
+  _delphiversion := inDelphiVersion;
+
+  Self.SetChanged;
+End;
 
 Procedure TRule.SetFileMasks(Const inFileMasks: String);
 Begin
@@ -340,6 +347,22 @@ Begin
   inherited;
 
   _rules.Clear;
+End;
+
+Function TRuleEngine.InternalGetChanged: Boolean;
+Var
+  rule: TRule;
+Begin
+  Result := inherited;
+
+  If Not Result Then
+    For rule in _rules.Values Do
+    Begin
+      Result := rule.Changed;
+
+      If Result Then
+        Break;
+    End;
 End;
 
 Procedure TRuleEngine.SetAsJSON(Const inJSON: TJSONObject);
@@ -492,6 +515,22 @@ Begin
   Self._enablelogging := False;
   Self._rulelistwidth := 0;
   _windows.Clear;
+End;
+
+Function TSettings.InternalGetChanged: Boolean;
+Var
+  windowsize: TWindowSize;
+Begin
+  Result := inherited Or _ruleengine.Changed;
+
+  If Not Result Then
+    For windowsize In _windows.Values Do
+    Begin
+      Result := windowsize.Changed;
+
+      If Result Then
+        Break;
+    End;
 End;
 
 Procedure TSettings.SetAsJSON(Const inJSON: TJSONObject);

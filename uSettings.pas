@@ -43,7 +43,9 @@ Type
   TRuleEngine = Class(TAEApplicationSetting)
   strict private
     _dvers: TAEDelphiVersions;
+    _prefer32bit: Boolean;
     _rules: TObjectDictionary<String, TRule>;
+    Procedure SetPrefer32Bit(Const inPrefer32Bit: Boolean);
     Procedure SetRule(Const inRuleName: String; Const inRule: TRule);
     Function Compare(Const inItem1, inItem2: String): Integer;
     Function GetRule(Const inRuleName: String): TRule;
@@ -59,6 +61,7 @@ Type
     Procedure RenameRule(Const inRuleName, inNewName: String);
     Function ContainsRule(Const inRuleName: String): Boolean;
     Property DelphiVersions: TAEDelphiVersions Read _dvers;
+    Property Prefer32Bit: Boolean Read _prefer32bit Write SetPrefer32Bit;
     Property Rule[Const inRuleName: String]: TRule Read GetRule Write SetRule;
     Property Rules: TArray<String> Read GetRules;
   End;
@@ -122,6 +125,7 @@ Const
   TXT_INSTANCECAPTIONCONTAINS = 'instancecaptioncontains';
   TXT_NEWINSTANCEPARAMS = 'newinstanceparams';
   TXT_ORDER = 'order';
+  TXT_PREFER32BIT = 'prefer32bit';
   TXT_RULES = 'rules';
   TXT_ENABLELOGGING = 'enablelogging';
   TXT_RULELISTWIDTH = 'rulelistwidth';
@@ -323,6 +327,9 @@ Var
 Begin
   Result := inherited;
 
+  If Not _prefer32bit Then
+    Result.AddPair(TXT_PREFER32BIT, _prefer32bit);
+
   For rulename In Self.Rules Do
     Result.AddPair(rulename, _rules[rulename].AsJSON);
 End;
@@ -347,6 +354,8 @@ Begin
   inherited;
 
   _rules.Clear;
+
+  _prefer32bit := True;
 End;
 
 Function TRuleEngine.InternalGetChanged: Boolean;
@@ -371,8 +380,22 @@ Var
 Begin
   inherited;
 
+  If inJSON.GetValue(TXT_PREFER32BIT) <> nil Then
+    _prefer32bit := TJSONBool(inJSON.GetValue(TXT_PREFER32BIT)).AsBoolean;
+
   For jp In inJSON Do
-    _rules.Add(jp.JsonString.Value, TRule.NewFromJSON(jp.JsonValue) As TRule);
+    If jp.JsonString.Value <> TXT_PREFER32BIT Then
+      _rules.Add(jp.JsonString.Value, TRule.NewFromJSON(jp.JsonValue) As TRule);
+End;
+
+Procedure TRuleEngine.SetPrefer32Bit(Const inPrefer32Bit: Boolean);
+Begin
+  If _prefer32bit = inPrefer32Bit Then
+    Exit;
+
+  _prefer32bit := inPrefer32Bit;
+
+  Self.SetChanged;
 End;
 
 Procedure TRuleEngine.SetRule(Const inRuleName: String; Const inRule: TRule);
@@ -471,8 +494,13 @@ Begin
 
   If Self._enablelogging Then
     Result.AddPair(TXT_ENABLELOGGING, TJSONBool.Create(Self._enablelogging));
-  If Length(_ruleengine.Rules) > 0 Then
-    Result.AddPair(TXT_RULES, _ruleengine.AsJSON);
+
+  json := _ruleengine.AsJSON;
+
+  If json.Count = 0 Then
+    FreeAndNil(json)
+  Else
+    Result.AddPair(TXT_RULES, json);
 
   If Self._rulelistwidth <> 0 Then
     Result.AddPair(TXT_RULELISTWIDTH, TJSONNumber.Create(Self._rulelistwidth));

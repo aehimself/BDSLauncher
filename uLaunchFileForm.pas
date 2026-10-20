@@ -68,14 +68,28 @@ Var
 Begin
   found := false;
 
+  // First pass - check if we have an exact match (32 bit preferred - 32 bit IDE)
   For a := 0 To InstancesTreeView.Items.Count - 1 Do
-    If InstancesTreeView.Items[a].Text = inDelphiversion Then
+    If (Settings.RuleEngine.Prefer32Bit And (InstancesTreeView.Items[a].Text = inDelphiversion)) Or
+       (Not Settings.RuleEngine.Prefer32Bit And (InstancesTreeView.Items[a].Text = inDelphiversion + ' x64')) Then
     Begin
       InstancesTreeView.Selected := InstancesTreeView.Items[a];
       found := True;
 
       Break;
     End;
+
+  If Not found Then
+    // If no, we do a second pass for the opposite (64 bit preferred - 32 bit IDE)
+    For a := 0 To InstancesTreeView.Items.Count - 1 Do
+      If (Not Settings.RuleEngine.Prefer32Bit And (InstancesTreeView.Items[a].Text = inDelphiversion)) Or
+         (Settings.RuleEngine.Prefer32Bit And (InstancesTreeView.Items[a].Text = inDelphiversion + ' x64')) Then
+      Begin
+        InstancesTreeView.Selected := InstancesTreeView.Items[a];
+        found := True;
+
+        Break;
+      End;
 
   If Not found Then
   Begin

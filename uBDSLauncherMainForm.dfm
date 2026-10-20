@@ -23,7 +23,6 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Width = 5
     Height = 393
     OnMoved = SplitterMoved
-    ExplicitHeight = 386
   end
   object RulesTreeView: TTreeView
     Left = 0
@@ -46,7 +45,6 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     OnCollapsing = RulesTreeViewCollapsing
     OnDragDrop = RulesTreeViewDragDrop
     OnDragOver = RulesTreeViewDragOver
-    ExplicitHeight = 386
   end
   object ScrollBox: TScrollBox
     Left = 255
@@ -62,7 +60,6 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     Color = clWindow
     ParentColor = False
     TabOrder = 1
-    ExplicitHeight = 386
     DesignSize = (
       346
       393)
@@ -190,6 +187,13 @@ object BDSLauncherMainForm: TBDSLauncherMainForm
     end
     object Rules1: TMenuItem
       Caption = '&Rules'
+      object Prefer32bit1: TMenuItem
+        Caption = 'Prefer 32 bit'
+        OnClick = Prefer32bit1Click
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
       object Newrule1: TMenuItem
         Caption = '&New rule...'
         ShortCut = 16462

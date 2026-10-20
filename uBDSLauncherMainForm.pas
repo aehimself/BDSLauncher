@@ -46,6 +46,8 @@ Type
     Renamerule1: TMenuItem;
     OpenDelphisourcefile1: TMenuItem;
     N3: TMenuItem;
+    N4: TMenuItem;
+    Prefer32bit1: TMenuItem;
     Procedure FormCreate(Sender: TObject);
     Procedure Deleterule1Click(Sender: TObject);
     Procedure Newrule1Click(Sender: TObject);
@@ -71,6 +73,7 @@ Type
     Procedure Renamerule1Click(Sender: TObject);
     Procedure RulesTreeViewChanging(Sender: TObject; Node: TTreeNode; Var AllowChange: Boolean);
     Procedure OpenDelphisourcefile1Click(Sender: TObject);
+    Procedure Prefer32bit1Click(Sender: TObject);
   strict private
     _dontsave: Boolean;
     _loading: Boolean;
@@ -220,6 +223,7 @@ Begin
   End;
 
   Enablelogging1.Checked := Settings.EnableLogging;
+  Prefer32bit1.Checked := Settings.RuleEngine.Prefer32Bit;
   Self.RefreshRules;
 End;
 
@@ -438,7 +442,7 @@ Var
   determinedversion: String;
   ver: TAEIDEVersion;
   inst: TAEIDEInstance;
-  instancebanner: Boolean;
+  instancebanner, onlyoneversion: Boolean;
 Begin
   BDSLogger.Log('Attempting to open file ' + inFileName);
 
@@ -480,11 +484,46 @@ Begin
 
   // If there is only one installed version and it has no running instances, don't run any rules or ask how to open it,
   // just start a new instance
-  If ((Length(RuleEngine.DelphiVersions.InstalledVersions) = 1) And (Length(RuleEngine.DelphiVersions.InstalledVersions[0].Instances) = 0)) Then
+  If (Length(RuleEngine.DelphiVersions.InstalledVersions) = 1) And
+     (Length(RuleEngine.DelphiVersions.InstalledVersions[0].Instances) = 0) Then
   Begin
     BDSLogger.Log('Only one installed version and no instances were found.');
 
     Self.OpenInNewInstance(inFileName, RuleEngine.DelphiVersions.InstalledVersions[0]);
+
+    Exit;
+  End;
+
+  // This if got really complicated and it's a lot more easy to read if broken up into multiple lines.
+  // Here, we'll check if there is only one version but but 32 and 64 bit IDE is installed. In that case
+  // the Prefer32bit setting can decide which one to start.
+  // First check: there are 2 detected versions installed
+  onlyoneversion := Length(RuleEngine.DelphiVersions.InstalledVersions) = 2;
+  // Second check: The installed 2 versions have the same version number
+  onlyoneversion := onlyoneversion And (RuleEngine.DelphiVersions.InstalledVersions[0].VersionNumber = RuleEngine.DelphiVersions.InstalledVersions[1].VersionNumber);
+  // Third check: One version is 32 bit, the other is 64 but
+  onlyoneversion := onlyoneversion And (((RuleEngine.DelphiVersions.InstalledVersions[0].Architecture = ia32bit) And (RuleEngine.DelphiVersions.InstalledVersions[1].Architecture = ia64bit)) Or ((RuleEngine.DelphiVersions.InstalledVersions[0].Architecture = ia64bit) And (RuleEngine.DelphiVersions.InstalledVersions[1].Architecture = ia32bit)));
+  // Fourth check: first version has no running instances
+  onlyoneversion := onlyoneversion And (Length(RuleEngine.DelphiVersions.InstalledVersions[0].Instances) = 0);
+  // Fifth check: second version has no running instances
+  onlyoneversion := onlyoneversion And (Length(RuleEngine.DelphiVersions.InstalledVersions[1].Instances) = 0);
+
+  If onlyoneversion Then
+  Begin
+    If RuleEngine.Prefer32Bit Then
+      If RuleEngine.DelphiVersions.InstalledVersions[0].Architecture = ia32bit Then
+        ver := RuleEngine.DelphiVersions.InstalledVersions[0]
+      Else
+        ver := RuleEngine.DelphiVersions.InstalledVersions[1]
+    Else
+      If RuleEngine.DelphiVersions.InstalledVersions[0].Architecture = ia64bit Then
+        ver := RuleEngine.DelphiVersions.InstalledVersions[0]
+      Else
+        ver := RuleEngine.DelphiVersions.InstalledVersions[1];
+
+    BDSLogger.Log('Only one installed version with 32 and 64 bit and no instances were found.');
+
+    Self.OpenInNewInstance(inFileName, ver);
 
     Exit;
   End;
@@ -636,6 +675,13 @@ Begin
     Result := true;
     Exit;
   End;
+End;
+
+Procedure TBDSLauncherMainForm.Prefer32bit1Click(Sender: TObject);
+Begin
+  Prefer32bit1.Checked := Not Prefer32bit1.Checked;
+
+  Settings.RuleEngine.Prefer32Bit := Prefer32bit1.Checked;
 End;
 
 Procedure TBDSLauncherMainForm.RefreshRules;

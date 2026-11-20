@@ -11,7 +11,7 @@ Unit uFileAssociations;
 Interface
 
 Const
-  KNOWNEXTENSIONS : Array[0..9] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj', '.dpkw', '.fmx', '.bdsgroup');
+  KNOWNEXTENSIONS : Array[0..10] Of String = ('.pas', '.dpr', '.dproj', '.dfm', '.groupproj', '.dpk', '.bdsproj', '.dpkw', '.fmx', '.bdsgroup', '.bpg');
 
 Procedure GiveBackFileAssociations;
 Procedure TakeOverFileAssociations;
